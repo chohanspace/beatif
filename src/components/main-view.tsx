@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Dispatch, SetStateAction } from 'react';
@@ -9,6 +10,7 @@ import PlaylistView from './playlist-view';
 import SearchView from './search-view';
 import LoginPage from '@/app/login/page';
 import SignupPage from '@/app/signup/page';
+import ForgotPasswordPage from '@/app/forgot-password/page';
 import { useApp } from '@/context/app-context';
 import { SidebarInset } from './ui/sidebar';
 
@@ -24,6 +26,9 @@ export default function MainView({ view, setView }: MainViewProps) {
     if (!loggedInUser) {
         if (view.type === 'signup') {
             return <SignupPage />;
+        }
+        if (view.type === 'forgot-password') {
+            return <ForgotPasswordPage />;
         }
         return <LoginPage />;
     }

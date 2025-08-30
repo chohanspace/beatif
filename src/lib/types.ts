@@ -1,4 +1,5 @@
 
+
 export interface Track {
   id: string;
   title: string;
@@ -18,6 +19,9 @@ export interface User {
   email: string;
   password?: string;
   createdAt: number;
+  isVerified?: boolean;
+  otp?: string;
+  otpExpires?: number;
 }
 
 export type View =
@@ -26,7 +30,8 @@ export type View =
   | { type: 'playlist'; playlistId: string }
   | { type: 'search'; query: string; results?: Track[] }
   | { type: 'login' }
-  | { type: 'signup' };
+  | { type: 'signup' }
+  | { type: 'forgot-password' };
 
 
 export type GenreBasedRecommendationsInput = {
