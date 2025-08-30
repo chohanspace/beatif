@@ -91,10 +91,11 @@ export default function AdminPage() {
   
   const handlePasswordChange = async () => {
       if(!editingUser) return;
-      const newPassword = prompt(`Enter new "password" for ${editingUser.email}.\nSince we use OTP, this is for demonstration and doesn't affect login. It will be stored on the user object.`);
+      const newPassword = prompt(`Enter new password for ${editingUser.email}.`);
       if (newPassword) {
-        setEditingUser({ ...editingUser, password_placeholder: newPassword } as any);
-        toast({title: 'Password Updated', description: "Password placeholder has been updated locally. Click Save to persist."})
+        // In a real app, you'd hash this password before saving
+        setEditingUser({ ...editingUser, password: `hashed_${newPassword}` });
+        toast({title: 'Password Updated', description: "Password has been updated locally. Click Save to persist."})
       }
   }
 

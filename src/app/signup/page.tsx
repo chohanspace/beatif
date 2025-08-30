@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { GearsLoader } from '@/components/ui/gears-loader';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 
 const signupSchema = z.object({
   email: z.string().email('Invalid email address.'),
@@ -27,6 +28,7 @@ export default function SignupPage() {
   const { toast } = useToast();
   const router = useRouter();
   const { loggedInUser } = useApp();
+  const [showPassword, setShowPassword] = useState(false);
 
    useEffect(() => {
     if(loggedInUser) {
@@ -47,7 +49,7 @@ export default function SignupPage() {
     setIsLoading(true);
     const { success, message } = await signUp(data.email, data.password);
     if (success) {
-      toast({ title: 'Account Created!', description: 'You can now log in using the link we sent to your email.' });
+      toast({ title: 'Account Created!', description: 'You can now log in.' });
        router.push('/login');
     } else {
       toast({ variant: 'destructive', title: 'Error', description: message });
@@ -85,7 +87,22 @@ export default function SignupPage() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="********" {...field} />
+                      <div className="relative">
+                        <Input 
+                          type={showPassword ? "text" : "password"} 
+                          placeholder="********" 
+                          {...field} 
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute inset-y-0 right-0 h-full px-3"
+                          onClick={() => setShowPassword(prev => !prev)}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

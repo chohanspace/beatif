@@ -14,11 +14,9 @@ export interface Playlist {
 }
 
 export interface User {
-  id: string; // email
+  id:string; // email
   email: string;
-  password_placeholder?: string; // For demonstration, not for real auth
-  otp?: string;
-  otpExpires?: number;
+  password?: string;
   createdAt: number;
 }
 
