@@ -5,7 +5,7 @@ import clientPromise from './mongodb';
 import { sendOtpEmail, sendPasswordResetEmail } from './email';
 import type { User } from './types';
 import { randomInt } from 'crypto';
-import type { Collection, Document } from 'mongodb';
+import type { Collection, Document, WithId } from 'mongodb';
 
 // Placeholder for password hashing. In a real app, use a strong library like bcrypt.
 async function hashPassword(password: string): Promise<string> {
@@ -95,26 +95,26 @@ export async function verifyOtp(email: string, otp: string): Promise<{ success: 
 export async function login(email: string, password: string): Promise<{ success: boolean; message: string; user?: Omit<User, 'password' | 'otp' | 'otpExpires'>, requiresVerification?: boolean }> {
   try {
     const users = await getUsersCollection();
-    const user = (await users.findOne({ email })) as User | null;
+    const userDoc = (await users.findOne({ email })) as WithId<User> | null;
 
-    if (!user || !user.password) {
+    if (!userDoc || !userDoc.password) {
       return { success: false, message: 'Invalid email or password.' };
     }
     
-    const isPasswordValid = await verifyPassword(password, user.password);
+    const isPasswordValid = await verifyPassword(password, userDoc.password);
 
     if (!isPasswordValid) {
       return { success: false, message: 'Invalid email or password.' };
     }
     
-    if (!user.isVerified) {
+    if (!userDoc.isVerified) {
         await resendSignUpOtp(email);
         return { success: false, message: 'Account not verified. A new verification code has been sent to your email.', requiresVerification: true };
     }
 
-    const { password: _password, otp: _otp, otpExpires: _otpExpires, ...userToReturn } = user;
+    const { password: _password, otp: _otp, otpExpires: _otpExpires, _id, ...userToReturn } = userDoc;
 
-    return { success: true, message: 'Login successful.', user: userToReturn };
+    return { success: true, message: 'Login successful.', user: { ...userToReturn, id: _id.toString() } };
 
   } catch (error) {
     console.error('Error during login:', error);
@@ -233,9 +233,10 @@ export async function getAllUsers(): Promise<User[]> {
     });
 }
 
-export async function saveUser(user: User): Promise<void> {
+export async function saveUser(user: User & { _id?: any }): Promise<void> {
     const usersCollection = await getUsersCollection();
-    const { id, ...userToSave } = user;
+    // Prevent trying to update the immutable _id field
+    const { id, _id, ...userToSave } = user;
     await usersCollection.updateOne({ email: user.email }, { $set: userToSave }, { upsert: true });
 }
 

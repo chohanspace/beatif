@@ -67,8 +67,13 @@ function BeatifApp() {
       </div>
     </SidebarProvider>
 
-    <Dialog open={showCountryDialog} onOpenChange={setShowCountryDialog}>
-        <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+    <Dialog open={showCountryDialog} onOpenChange={(isOpen) => {
+        // Prevent closing the dialog by clicking outside or pressing Escape
+        if (!isOpen) {
+            toast({ variant: 'destructive', title: "Selection Required", description: "Please select your country to continue." });
+        }
+    }}>
+        <DialogContent onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-[425px]">
             <DialogHeader>
                 <DialogTitle>Welcome to Beatif!</DialogTitle>
                 <DialogDescription>
