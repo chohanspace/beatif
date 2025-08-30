@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -9,6 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,9 +51,9 @@ export function AddToPlaylistDialog({ onSave, onSelectPlaylist, triggerButton }:
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <div onClick={(e) => { e.stopPropagation(); setIsOpen(true) }}>
+      <DialogTrigger asChild onClick={(e) => e.stopPropagation()}>
         {triggerButton}
-      </div>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => e.preventDefault()}>
         {view === 'select' ? (
           <>
