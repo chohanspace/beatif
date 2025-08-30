@@ -1,3 +1,4 @@
+
 "use server";
 
 import { generateMoodPlaylist } from "@/ai/flows/mood-based-playlists";
@@ -27,15 +28,11 @@ export async function searchYoutube(query: string): Promise<Track[]> {
 }
 
 export async function getTracksForMood(mood: string): Promise<Track[]> {
-    try {
-        const playlist = await generateMoodPlaylist(mood);
-        const trackPromises = playlist.songs.map(songTitle => searchYoutube(songTitle).then(results => results[0]));
-        const tracks = await Promise.all(trackPromises);
-        return tracks.filter((t): t is Track => t !== undefined);
-    } catch (error) {
-        console.error(`Error getting tracks for mood ${mood}:`, error);
-        return [];
-    }
+    console.log(`Getting tracks for mood: ${mood}`);
+    // Simulate an API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Return a shuffled and sliced list of mock tracks
+    return [...mockTracks].sort(() => 0.5 - Math.random()).slice(0, 4);
 }
 
 export async function getGenreRecommendations(input: GenreBasedRecommendationsInput): Promise<string> {
