@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useApp } from '@/context/app-context';
-import { signUp, verifyOtp } from '@/lib/auth';
+import { signUp, verifyOtp, resendVerificationOtp } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -43,6 +43,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showOtpDialog, setShowOtpDialog] = useState(false);
   const [emailToVerify, setEmailToVerify] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const signupForm = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
@@ -64,6 +65,7 @@ export default function SignupPage() {
     if (email) {
         setEmailToVerify(decodeURIComponent(email));
         setShowOtpDialog(true);
+        setResendCooldown(30);
     }
   }, [searchParams]);
 
@@ -73,12 +75,21 @@ export default function SignupPage() {
     }
   }, [loggedInUser, router]);
 
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resendCooldown > 0) {
+      timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
   async function onSignupSubmit(data: z.infer<typeof signupSchema>) {
     setIsLoading(true);
     const { success, message } = await signUp(data.email, data.password);
     if (success) {
       setEmailToVerify(data.email);
       setShowOtpDialog(true);
+      setResendCooldown(30);
       toast({ title: 'OTP Sent', description: message });
     } else {
       toast({ variant: 'destructive', title: 'Sign Up Failed', description: message });
@@ -95,6 +106,19 @@ export default function SignupPage() {
       router.push('/login');
     } else {
       toast({ variant: 'destructive', title: 'Verification Failed', description: message });
+    }
+    setIsLoading(false);
+  }
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    setIsLoading(true);
+    const { success, message } = await resendVerificationOtp(emailToVerify);
+    if (success) {
+        toast({ title: 'OTP Sent', description: 'A new verification code has been sent.' });
+        setResendCooldown(30);
+    } else {
+        toast({ variant: 'destructive', title: 'Error', description: message });
     }
     setIsLoading(false);
   }
@@ -188,12 +212,15 @@ export default function SignupPage() {
                         </FormItem>
                     )}
                     />
-                    <DialogFooter>
-                        <Button type="submit" className="w-full" disabled={isLoading}>
+                    <div className="flex justify-between items-center">
+                        <Button type="submit" disabled={isLoading}>
                             {isLoading && <GearsLoader className="mr-2" size="sm" />}
                             Verify Account
                         </Button>
-                    </DialogFooter>
+                         <Button type="button" variant="link" onClick={handleResendOtp} disabled={isLoading || resendCooldown > 0}>
+                            {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
+                         </Button>
+                    </div>
                 </form>
             </Form>
         </DialogContent>
