@@ -2,11 +2,12 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { deleteUser, getAllUsers, saveUser } from '@/lib/firebase';
+import { createUserAsAdmin } from '@/lib/auth';
 import type { User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Edit, Save, Search, Key, Shield } from 'lucide-react';
+import { Trash2, Edit, Save, Search, Key, Shield, UserPlus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { GearsLoader } from '@/components/ui/gears-loader';
+import { Label } from '@/components/ui/label';
 
 export default function AdminPage() {
   const [accessGranted, setAccessGranted] = useState(false);
@@ -25,9 +27,12 @@ export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<User | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newUser, setNewUser] = useState({ email: '', password: '' });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,8 +49,6 @@ export default function AdminPage() {
   }, [searchTerm, users]);
   
   const handleAccessCheck = () => {
-    // In a real app, this would be a server-side check.
-    // This is a simple client-side check for demonstration.
     if (accessKey === process.env.NEXT_PUBLIC_ADMIN_ACCESS_KEY || accessKey === '36572515') {
         setAccessGranted(true);
         setIsLoading(true);
@@ -69,8 +72,7 @@ export default function AdminPage() {
   const handleSave = async () => {
     if (!editingUser) return;
     
-    // When saving, we might be changing the email, which is the ID.
-    // We need to delete the old record if the email has changed.
+    setIsUpdating(true);
     const originalUser = users.find(u => u.createdAt === editingUser.createdAt);
     if (originalUser && originalUser.email !== editingUser.email) {
         await deleteUser(originalUser.email);
@@ -78,25 +80,45 @@ export default function AdminPage() {
 
     await saveUser(editingUser);
     setEditingUser(null);
-    fetchUsers();
+    await fetchUsers();
     toast({ title: 'User Updated', description: `Saved changes for ${editingUser.email}.` });
+    setIsUpdating(false);
   };
   
   const handleDelete = async (user: User) => {
+    setIsUpdating(true);
     await deleteUser(user.email);
     setShowDeleteConfirm(null);
-    fetchUsers();
+    await fetchUsers();
     toast({ title: 'User Deleted', description: `${user.email} has been deleted.` });
+    setIsUpdating(false);
   };
   
   const handlePasswordChange = async () => {
       if(!editingUser) return;
       const newPassword = prompt(`Enter new password for ${editingUser.email}.`);
       if (newPassword) {
-        // In a real app, you'd hash this password before saving
         setEditingUser({ ...editingUser, password: `hashed_${newPassword}` });
         toast({title: 'Password Updated', description: "Password has been updated locally. Click Save to persist."})
       }
+  }
+
+  const handleCreateUser = async () => {
+    if (!newUser.email || !newUser.password) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Email and password are required.' });
+        return;
+    }
+    setIsUpdating(true);
+    const { success, message } = await createUserAsAdmin(newUser.email, newUser.password);
+    if (success) {
+        toast({ title: 'User Created', description: `Account for ${newUser.email} created.`});
+        setShowCreateDialog(false);
+        setNewUser({email: '', password: ''});
+        await fetchUsers();
+    } else {
+        toast({ variant: 'destructive', title: 'Creation Failed', description: message });
+    }
+    setIsUpdating(false);
   }
 
 
@@ -138,7 +160,11 @@ export default function AdminPage() {
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button onClick={fetchUsers} variant="outline" className="ml-4">
+        <Button onClick={() => setShowCreateDialog(true)} className="ml-4">
+          <UserPlus className="mr-2" />
+          Create User
+        </Button>
+        <Button onClick={fetchUsers} variant="outline" className="ml-2">
           {isLoading ? <GearsLoader size="sm" /> : 'Refresh'}
         </Button>
       </div>
@@ -168,7 +194,7 @@ export default function AdminPage() {
                 <TableCell className="space-x-2">
                   {editingUser?.createdAt === user.createdAt ? (
                     <>
-                      <Button size="icon" variant="ghost" onClick={handleSave}><Save className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={handleSave} disabled={isUpdating}><Save className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" onClick={() => setEditingUser(null)}>
                         <span className="text-xs">Cancel</span>
                       </Button>
@@ -200,7 +226,38 @@ export default function AdminPage() {
                 <DialogClose asChild>
                     <Button variant="ghost">Cancel</Button>
                 </DialogClose>
-                <Button variant="destructive" onClick={() => handleDelete(showDeleteConfirm!)}>Delete</Button>
+                <Button variant="destructive" onClick={() => handleDelete(showDeleteConfirm!)} disabled={isUpdating}>Delete</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Create User Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Create New User</DialogTitle>
+                <DialogDescription>
+                    Create a new user account. The user will be automatically verified.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="new-email" className="text-right">Email</Label>
+                    <Input id="new-email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="col-span-3" />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="new-password" className="text-right">Password</Label>
+                    <Input id="new-password" type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="col-span-3" />
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="ghost">Cancel</Button>
+                </DialogClose>
+                <Button onClick={handleCreateUser} disabled={isUpdating}>
+                    {isUpdating && <GearsLoader size="sm" className="mr-2" />}
+                    Create User
+                </Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>

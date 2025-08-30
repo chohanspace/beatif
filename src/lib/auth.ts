@@ -27,10 +27,10 @@ export async function signUp(email: string, password: string): Promise<{ success
     const existingUser = await getUser(email);
 
     if (existingUser) {
-        // If user exists, even if not verified, just send a new OTP.
         if (existingUser.isVerified) {
              return { success: false, message: 'An account with this email already exists and is verified.' };
         }
+        // If user exists but is not verified, send a new OTP.
         const otp = generateOtp();
         const updatedUser: User = { 
             ...existingUser, 
@@ -131,7 +131,6 @@ export async function login(email: string, password: string): Promise<{ success:
       return { success: false, message: 'Invalid email or password.' };
     }
 
-    // Return user object without sensitive info
     const { password: _password, otp: _otp, otpExpires: _otpExpires, ...userToReturn } = user;
 
     return { success: true, message: 'Login successful.', user: userToReturn };
@@ -146,7 +145,6 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
     try {
         const user = await getUser(email);
         if (!user) {
-            // Still return success to prevent email enumeration
             return { success: true, message: "If an account with that email exists, a password reset code has been sent." };
         }
 
@@ -162,7 +160,6 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
         return { success: false, message: "An unexpected error occurred." };
     }
 }
-
 
 export async function resetPasswordWithOtp(email: string, otp: string, newPassword: string): Promise<{ success: boolean, message: string }> {
     try {
@@ -191,4 +188,29 @@ export async function resetPasswordWithOtp(email: string, otp: string, newPasswo
         console.error("Error resetting password:", error);
         return { success: false, message: "An unexpected error occurred." };
     }
+}
+
+export async function createUserAsAdmin(email: string, password: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const existingUser = await getUser(email);
+    if (existingUser) {
+      return { success: false, message: 'An account with this email already exists.' };
+    }
+
+    const hashedPassword = await hashPassword(password);
+    const newUser: User = {
+      id: email,
+      email,
+      password: hashedPassword,
+      createdAt: Date.now(),
+      isVerified: true, // Automatically verify admin-created users
+    };
+
+    await saveUser(newUser);
+
+    return { success: true, message: 'User created successfully.' };
+  } catch (error) {
+    console.error('Error creating user as admin:', error);
+    return { success: false, message: 'Failed to create user. Please try again.' };
+  }
 }
