@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useApp } from '@/context/app-context';
-import { login, requestOtp, resendVerificationOtp } from '@/lib/auth';
+import { login, resendVerificationOtp } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -57,11 +57,13 @@ export default function LoginPage() {
     const { success, message } = await resendVerificationOtp(emailToVerify);
     if (success) {
       toast({ title: 'OTP Sent', description: 'A new verification code has been sent to your email.' });
-      router.push(`/signup?email=${emailToVerify}`); // Redirect to signup to complete verification
+      // Redirect to signup page with email to show OTP dialog
+      router.push(`/signup?email=${encodeURIComponent(emailToVerify)}`);
     } else {
       toast({ variant: 'destructive', title: 'Error', description: message });
     }
     setIsLoading(false);
+    setShowVerifyDialog(false);
   }
 
   async function onSubmit(data: z.infer<typeof loginSchema>) {

@@ -115,15 +115,15 @@ export async function login(email: string, password: string): Promise<{ success:
     if (!user || !user.password) {
       return { success: false, message: 'Invalid email or password.' };
     }
+    
+    if (!user.isVerified) {
+        return { success: false, message: 'Account not verified.', requiresVerification: true };
+    }
 
     const isPasswordValid = await verifyPassword(password, user.password);
 
     if (!isPasswordValid) {
       return { success: false, message: 'Invalid email or password.' };
-    }
-    
-    if (!user.isVerified) {
-        return { success: false, message: 'Account not verified.', requiresVerification: true };
     }
 
     // Return user object without sensitive info

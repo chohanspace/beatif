@@ -31,7 +31,7 @@ const signupSchema = z.object({
 });
 
 const otpSchema = z.object({
-    otp: z.string().min(6, 'OTP must be 6 characters.'),
+    otp: z.string().length(6, 'OTP must be 6 characters.'),
 });
 
 export default function SignupPage() {
@@ -62,7 +62,7 @@ export default function SignupPage() {
   useEffect(() => {
     const email = searchParams.get('email');
     if (email) {
-        setEmailToVerify(email);
+        setEmailToVerify(decodeURIComponent(email));
         setShowOtpDialog(true);
     }
   }, [searchParams]);
@@ -90,6 +90,7 @@ export default function SignupPage() {
     setIsLoading(true);
     const { success, message } = await verifyOtp(emailToVerify, data.otp);
     if (success) {
+      setShowOtpDialog(false);
       toast({ title: 'Account Verified!', description: 'You can now log in.' });
       router.push('/login');
     } else {
@@ -181,7 +182,7 @@ export default function SignupPage() {
                         <FormItem>
                         <FormLabel>One-Time Password</FormLabel>
                         <FormControl>
-                            <Input placeholder="123456" {...field} />
+                            <Input placeholder="123456" {...field} autoFocus/>
                         </FormControl>
                         <FormMessage />
                         </FormItem>
