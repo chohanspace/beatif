@@ -20,7 +20,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { GearsLoader } from '@/components/ui/gears-loader';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -148,7 +148,7 @@ export default function LoginPage() {
                 )}
               />
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading && <GearsLoader className="mr-2" size="sm" />}
                 Send Code
               </Button>
             </form>
@@ -195,7 +195,7 @@ export default function LoginPage() {
               <DialogFooter className="gap-2 sm:justify-end">
                  <Button type="button" variant="ghost" onClick={() => setIsOtpDialogOpen(false)} disabled={isLoading}>Back</Button>
                  <Button type="submit" className="flex-1" disabled={isLoading}>
-                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                   {isLoading && <GearsLoader className="mr-2" size="sm" />}
                    Verify & Login
                  </Button>
               </DialogFooter>

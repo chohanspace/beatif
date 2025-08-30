@@ -6,7 +6,7 @@ import type { User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2, Edit, Save, Search, Key, Shield } from 'lucide-react';
+import { Trash2, Edit, Save, Search, Key, Shield } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { GearsLoader } from '@/components/ui/gears-loader';
 
 export default function AdminPage() {
   const [accessGranted, setAccessGranted] = useState(false);
@@ -130,13 +131,13 @@ export default function AdminPage() {
           />
         </div>
         <Button onClick={fetchUsers} variant="outline" className="ml-4">
-          {isLoading ? <Loader2 className="animate-spin" /> : 'Refresh'}
+          {isLoading ? <GearsLoader size="sm" /> : 'Refresh'}
         </Button>
       </div>
 
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <GearsLoader size="lg" />
         </div>
       ) : (
         <Table>

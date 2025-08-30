@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from 'react';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { getGenreRecommendations } from '@/lib/actions';
+import { GearsLoader } from './ui/gears-loader';
 
 export default function RecommendationsView() {
   const [listeningHistory, setListeningHistory] = useState('');
@@ -51,7 +52,7 @@ export default function RecommendationsView() {
             <Button type="submit" disabled={isLoading || !listeningHistory.trim()}>
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <GearsLoader className="mr-2" size="sm" />
                   Analyzing...
                 </>
               ) : (

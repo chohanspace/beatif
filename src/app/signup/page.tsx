@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { GearsLoader } from '@/components/ui/gears-loader';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -92,7 +92,7 @@ export default function SignupPage() {
                 )}
               />
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading && <GearsLoader className="mr-2" size="sm" />}
                 Sign Up
               </Button>
             </form>

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
-import { Loader2 } from 'lucide-react';
 import { getTracksForMood } from '@/lib/actions';
 import type { Track, View } from '@/lib/types';
 import TrackCard from './track-card';
 import { Button } from './ui/button';
+import { GearsLoader } from './ui/gears-loader';
 
 const moods = ['Happy', 'Relaxed', 'Energetic', 'Melancholy', 'Romantic'];
 
@@ -59,9 +59,9 @@ export default function DiscoverView({ setView, initialResults }: DiscoverViewPr
 
       <div>
         {isLoading && (
-          <div className="flex items-center justify-center py-10">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4 text-lg">Brewing your {selectedMood} mix...</p>
+          <div className="flex flex-col items-center justify-center py-10 gap-4">
+            <GearsLoader size="lg" />
+            <p className="text-lg text-muted-foreground">Brewing your {selectedMood} mix...</p>
           </div>
         )}
         {moodResults.length > 0 && (
