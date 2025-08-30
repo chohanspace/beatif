@@ -29,13 +29,21 @@ async function getUsersCollection(): Promise<Collection<Document>> {
     return db.collection('users');
 }
 
-export async function signUp(email: string, password: string): Promise<{ success: boolean; message: string }> {
+export async function signUp(email: string, password: string): Promise<{ success: boolean; message: string; requiresVerification?: boolean }> {
   try {
     const users = await getUsersCollection();
-    const existingUser = await users.findOne({ email });
+    const existingUser = (await users.findOne({ email })) as User | null;
+    const otp = generateOtp();
+    const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     if (existingUser) {
-      return { success: false, message: 'An account with this email already exists.' };
+      if (existingUser.isVerified) {
+        return { success: false, message: 'An account with this email already exists.' };
+      }
+      // If user exists but is not verified, update OTP and resend
+      await users.updateOne({ email }, { $set: { otp, otpExpires, password: await hashPassword(password) } });
+      await sendOtpEmail(email, otp);
+      return { success: true, message: 'A new verification code has been sent to your email.', requiresVerification: true };
     }
 
     const hashedPassword = await hashPassword(password);
@@ -44,17 +52,45 @@ export async function signUp(email: string, password: string): Promise<{ success
       email,
       password: hashedPassword,
       createdAt: Date.now(),
-      isVerified: true, // User is verified immediately
+      isVerified: false,
+      otp,
+      otpExpires
     };
     
     await users.insertOne(userToSave);
+    await sendOtpEmail(email, otp);
 
-    return { success: true, message: 'Account created successfully! You can now log in.' };
+    return { success: true, message: 'Account created. Please check your email for a verification code.', requiresVerification: true };
   } catch (error) {
     console.error('Error during sign up:', error);
     return { success: false, message: 'Failed to create account. Please try again.' };
   }
 }
+
+export async function verifyOtp(email: string, otp: string): Promise<{ success: boolean, message: string }> {
+    try {
+        const users = await getUsersCollection();
+        const user = (await users.findOne({ email })) as User | null;
+
+        if (!user || !user.otp || !user.otpExpires) {
+            return { success: false, message: 'No OTP request found for this email. Please sign up again.' };
+        }
+        if (user.otpExpires < Date.now()) {
+            return { success: false, message: 'Your OTP has expired. Please request a new one.' };
+        }
+        if (user.otp !== otp) {
+            return { success: false, message: 'Invalid OTP. Please try again.' };
+        }
+        
+        await users.updateOne({ email }, { $set: { isVerified: true, otp: undefined, otpExpires: undefined } });
+
+        return { success: true, message: 'Email verified successfully! You can now log in.' };
+    } catch (error) {
+        console.error("Error verifying OTP:", error);
+        return { success: false, message: "An unexpected error occurred during verification." };
+    }
+}
+
 
 export async function login(email: string, password: string): Promise<{ success: boolean; message: string; user?: Omit<User, 'password' | 'otp' | 'otpExpires'>, requiresVerification?: boolean }> {
   try {
@@ -65,16 +101,15 @@ export async function login(email: string, password: string): Promise<{ success:
       return { success: false, message: 'Invalid email or password.' };
     }
     
-    if (!user.isVerified) {
-        // This part of the code may not be reachable if sign-up automatically verifies users.
-        // Kept for potential future use cases.
-        return { success: false, message: 'Account not verified.', requiresVerification: true };
-    }
-
     const isPasswordValid = await verifyPassword(password, user.password);
 
     if (!isPasswordValid) {
       return { success: false, message: 'Invalid email or password.' };
+    }
+    
+    if (!user.isVerified) {
+        await resendSignUpOtp(email);
+        return { success: false, message: 'Account not verified. A new verification code has been sent to your email.', requiresVerification: true };
     }
 
     const { password: _password, otp: _otp, otpExpires: _otpExpires, ...userToReturn } = user;
@@ -85,6 +120,31 @@ export async function login(email: string, password: string): Promise<{ success:
     console.error('Error during login:', error);
     return { success: false, message: 'An error occurred during login.' };
   }
+}
+
+export async function resendSignUpOtp(email: string): Promise<{ success: boolean; message: string }> {
+    try {
+        const users = await getUsersCollection();
+        const user = await users.findOne({ email });
+
+        if (!user) {
+            return { success: false, message: "Account not found." };
+        }
+        if (user.isVerified) {
+            return { success: false, message: "Account is already verified." };
+        }
+
+        const otp = generateOtp();
+        const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+        
+        await users.updateOne({ email }, { $set: { otp, otpExpires }});
+        await sendOtpEmail(email, otp);
+
+        return { success: true, message: "A new verification code has been sent." };
+    } catch (error) {
+        console.error("Error resending OTP:", error);
+        return { success: false, message: "An unexpected error occurred." };
+    }
 }
 
 export async function requestPasswordReset(email: string): Promise<{ success: boolean, message: string }> {
@@ -167,9 +227,9 @@ export async function getAllUsers(): Promise<User[]> {
     const usersCollection = await getUsersCollection();
     const users = await usersCollection.find({}).toArray();
     // Convert MongoDB documents to plain objects
-    return users.map((user) => {
-        const { _id, ...rest } = user;
-        return { ...rest, id: _id.toString() } as User;
+    return users.map((userDoc) => {
+        const { _id, ...user } = userDoc;
+        return { ...user, id: _id.toString() } as User;
     });
 }
 
