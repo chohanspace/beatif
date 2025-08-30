@@ -1,5 +1,9 @@
+
+"use server";
+
 import { getUser, saveUser } from './firebase';
 import { sendOtpEmail } from './email';
+import type { User } from './types';
 
 export async function requestLogin(email: string): Promise<{ success: boolean; message: string }> {
   try {
@@ -12,7 +16,7 @@ export async function requestLogin(email: string): Promise<{ success: boolean; m
       user.otpExpires = otpExpires;
     } else {
       user = {
-        id: email,
+        id: email, // Ensure the ID is the email
         email,
         otp,
         otpExpires,
@@ -30,12 +34,12 @@ export async function requestLogin(email: string): Promise<{ success: boolean; m
   }
 }
 
-export async function verifyOtp(email: string, otp: string): Promise<{ success: boolean; message: string; user?: any }> {
+export async function verifyOtp(email: string, otp: string): Promise<{ success: boolean; message: string; user?: Omit<User, 'otp' | 'otpExpires'> }> {
   try {
     const user = await getUser(email);
 
     if (!user || !user.otp || !user.otpExpires) {
-      return { success: false, message: 'No OTP request found for this email.' };
+      return { success: false, message: 'No OTP request found for this email. Please request a new one.' };
     }
 
     if (user.otpExpires < Date.now()) {
@@ -47,13 +51,15 @@ export async function verifyOtp(email: string, otp: string): Promise<{ success: 
     }
 
     // Clear OTP after successful login
-    user.otp = undefined;
-    user.otpExpires = undefined;
-    await saveUser(user);
+    const loggedInUser: User = { ...user };
+    delete loggedInUser.otp;
+    delete loggedInUser.otpExpires;
+    await saveUser(loggedInUser);
     
-    // In a real app, you'd create a session token here.
-    // For simplicity, we'll store the logged in user email in local storage on the client.
-    return { success: true, message: 'Login successful.', user: { email: user.email } };
+    // Return user object without sensitive OTP info
+    const { otp: _otp, otpExpires: _otpExpires, ...userToReturn } = loggedInUser;
+
+    return { success: true, message: 'Login successful.', user: userToReturn };
 
   } catch (error) {
     console.error('Error verifying OTP:', error);

@@ -1,3 +1,4 @@
+
 // This is a placeholder for your Firebase configuration.
 // In a real application, you would populate this with your own Firebase project credentials.
 // Make sure to install the 'firebase' package: npm install firebase
@@ -63,7 +64,7 @@ export async function getUser(email: string): Promise<User | null> {
     const db = getDatabase(app);
     const snapshot = await get(child(ref(db), `users/${email}`));
     if (snapshot.exists()) {
-        return snapshot.val();
+        return snapshot.val() as User;
     }
     return null;
 }

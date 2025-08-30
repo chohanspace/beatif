@@ -1,3 +1,4 @@
+
 export interface Track {
   id: string;
   title: string;
@@ -26,3 +27,8 @@ export type View =
   | { type: 'playlist'; playlistId: string }
   | { type: 'search'; query: string; results?: Track[] }
   | { type: 'login' };
+
+
+export type GenreBasedRecommendationsInput = {
+    listeningHistory: string;
+}
