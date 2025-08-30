@@ -16,6 +16,7 @@ export interface Playlist {
 export interface User {
   id: string; // email
   email: string;
+  password_placeholder?: string; // For demonstration, not for real auth
   otp?: string;
   otpExpires?: number;
   createdAt: number;
@@ -26,7 +27,8 @@ export type View =
   | { type: 'recommendations' }
   | { type: 'playlist'; playlistId: string }
   | { type: 'search'; query: string; results?: Track[] }
-  | { type: 'login' };
+  | { type: 'login' }
+  | { type: 'signup' };
 
 
 export type GenreBasedRecommendationsInput = {

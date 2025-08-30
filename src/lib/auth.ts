@@ -2,31 +2,53 @@
 "use server";
 
 import { getUser, saveUser } from './firebase';
-import { sendOtpEmail } from './email';
+import { sendOtpEmail, sendWelcomeEmail } from './email';
 import type { User } from './types';
+
+// Placeholder for password hashing. In a real app, use a strong library like bcrypt.
+async function hashPassword(password: string): Promise<string> {
+    // This is NOT secure. For demonstration purposes only.
+    return `hashed_${password}`;
+}
+
+export async function signUp(email: string, password: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const existingUser = await getUser(email);
+    if (existingUser) {
+        return { success: false, message: 'An account with this email already exists.' };
+    }
+
+    const hashedPassword = await hashPassword(password);
+    const newUser: User = {
+        id: email, // The document ID will be the user's email
+        email,
+        password_placeholder: hashedPassword,
+        createdAt: Date.now(),
+    };
+    
+    await saveUser(newUser);
+    await sendWelcomeEmail(email);
+
+    return { success: true, message: 'Account created successfully! Please check your email to log in.' };
+  } catch (error) {
+    console.error('Error during sign up:', error);
+    return { success: false, message: 'Failed to create account. Please try again.' };
+  }
+}
 
 export async function requestLogin(email: string): Promise<{ success: boolean; message: string }> {
   try {
     let user = await getUser(email);
+    if (!user) {
+        return { success: false, message: 'No account found with this email. Please sign up first.' };
+    }
+    
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    if (user) {
-      // If user exists, just update OTP fields
-      user.otp = otp;
-      user.otpExpires = otpExpires;
-    } else {
-      // If user is new, create the full user object
-      user = {
-        id: email, // The document ID will be the user's email
-        email,
-        otp,
-        otpExpires,
-        createdAt: Date.now(),
-      };
-    }
-
-    // Save the user object. `saveUser` should use user.id as the document key.
+    user.otp = otp;
+    user.otpExpires = otpExpires;
+    
     await saveUser(user);
     await sendOtpEmail(email, otp);
 
@@ -37,7 +59,7 @@ export async function requestLogin(email: string): Promise<{ success: boolean; m
   }
 }
 
-export async function verifyOtp(email: string, otp: string): Promise<{ success: boolean; message: string; user?: Omit<User, 'otp' | 'otpExpires'> }> {
+export async function verifyOtp(email: string, otp: string): Promise<{ success: boolean; message: string; user?: Omit<User, 'otp' | 'otpExpires' | 'password_placeholder'> }> {
   try {
     const user = await getUser(email);
 
@@ -61,10 +83,10 @@ export async function verifyOtp(email: string, otp: string): Promise<{ success: 
     // Save the user object again to clear OTP from the database
     await saveUser(loggedInUser);
     
-    // Return user object without sensitive OTP info
-    const { otp: _otp, otpExpires: _otpExpires, ...userToReturn } = loggedInUser;
+    // Return user object without sensitive info
+    const { otp: _otp, otpExpires: _otpExpires, password_placeholder, ...userToReturn } = loggedInUser;
 
-    return { success: true, message: 'Login successful.', user: userToReturn };
+    return { success: true, message: 'Login successful.', user: userToReturn as any };
 
   } catch (error) {
     console.error('Error verifying OTP:', error);

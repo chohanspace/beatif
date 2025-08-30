@@ -7,7 +7,8 @@ import DiscoverView from './discover-view';
 import RecommendationsView from './recommendations-view';
 import PlaylistView from './playlist-view';
 import SearchView from './search-view';
-import LoginView from './login-view';
+import LoginPage from '@/app/login/page';
+import SignupPage from '@/app/signup/page';
 import { useApp } from '@/context/app-context';
 import { SidebarInset } from './ui/sidebar';
 
@@ -20,15 +21,21 @@ interface MainViewProps {
 export default function MainView({ view, setView }: MainViewProps) {
     const { loggedInUser } = useApp();
 
+    if (!loggedInUser) {
+        if (view.type === 'signup') {
+            return <SignupPage />;
+        }
+        return <LoginPage />;
+    }
+
     return (
     <SidebarInset className="flex-1 flex flex-col">
       <AppHeader view={view} setView={setView} />
       <div className="flex-1 p-6 overflow-y-auto">
         {view.type === 'discover' && <DiscoverView setView={setView} initialResults={view.results} />}
-        {view.type === 'recommendations' && (loggedInUser ? <RecommendationsView /> : <p>Please log in to get recommendations.</p>)}
+        {view.type === 'recommendations' && <RecommendationsView />}
         {view.type === 'playlist' && <PlaylistView playlistId={view.playlistId} />}
         {view.type === 'search' && <SearchView query={view.query} setView={setView} initialResults={view.results} />}
-        {view.type === 'login' && <LoginView setView={setView} />}
       </div>
     </SidebarInset>
   );

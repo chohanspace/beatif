@@ -6,11 +6,10 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useApp } from '@/context/app-context';
-import type { View } from '@/lib/types';
 import { requestLogin, verifyOtp } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import {
   Dialog,
@@ -22,6 +21,8 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const emailSchema = z.object({
   email: z.string().email('Invalid email address.'),
@@ -31,18 +32,22 @@ const otpSchema = z.object({
   otp: z.string().min(6, 'OTP must be 6 digits.').max(6, 'OTP must be 6 digits.'),
 });
 
-interface LoginViewProps {
-    setView: Dispatch<SetStateAction<View>>;
-}
 
-export default function LoginView({ setView }: LoginViewProps) {
+export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOtpDialogOpen, setIsOtpDialogOpen] = useState(false);
-  const { setLoggedInUser } = useApp();
+  const { setLoggedInUser, loggedInUser } = useApp();
   const { toast } = useToast();
   const [cooldown, setCooldown] = useState(0);
   const [resendAttempts, setResendAttempts] = useState(0);
+  const router = useRouter();
+  
+  useEffect(() => {
+    if(loggedInUser) {
+        router.push('/');
+    }
+  }, [loggedInUser, router]);
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
@@ -99,7 +104,7 @@ export default function LoginView({ setView }: LoginViewProps) {
         }
         setIsOtpDialogOpen(false);
         toast({ title: 'Success!', description: 'You are now logged in.' });
-        setView({ type: 'discover' });
+        router.push('/');
     } else {
         toast({ variant: 'destructive', title: 'Login Failed', description: message });
     }
@@ -120,10 +125,10 @@ export default function LoginView({ setView }: LoginViewProps) {
   }
 
   return (
-    <div className="flex justify-center items-center h-full">
+    <div className="flex justify-center items-center h-screen bg-background">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Login / Sign Up</CardTitle>
+          <CardTitle>Login</CardTitle>
           <CardDescription>Enter your email to receive a login code.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -149,6 +154,9 @@ export default function LoginView({ setView }: LoginViewProps) {
             </form>
           </Form>
         </CardContent>
+         <CardFooter className="text-sm text-center block">
+          Don't have an account? <Link href="/signup" className="underline">Sign up</Link>
+        </CardFooter>
       </Card>
 
       <Dialog open={isOtpDialogOpen} onOpenChange={setIsOtpDialogOpen}>
