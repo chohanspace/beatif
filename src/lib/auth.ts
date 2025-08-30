@@ -1,10 +1,11 @@
 
 "use server";
 
-import { getUser, saveUser } from './firebase';
+import clientPromise from './mongodb';
 import { sendOtpEmail, sendPasswordResetEmail } from './email';
 import type { User } from './types';
 import { randomInt } from 'crypto';
+import type { Collection, Document } from 'mongodb';
 
 // Placeholder for password hashing. In a real app, use a strong library like bcrypt.
 async function hashPassword(password: string): Promise<string> {
@@ -22,9 +23,16 @@ function generateOtp(): string {
     return randomInt(100000, 999999).toString();
 }
 
+async function getUsersCollection(): Promise<Collection<Document>> {
+    const client = await clientPromise;
+    const db = client.db();
+    return db.collection('users');
+}
+
 export async function signUp(email: string, password: string): Promise<{ success: boolean; message: string }> {
   try {
-    const existingUser = await getUser(email);
+    const users = await getUsersCollection();
+    const existingUser = await users.findOne({ email });
 
     if (existingUser) {
       return { success: false, message: 'An account with this email already exists.' };
@@ -39,7 +47,7 @@ export async function signUp(email: string, password: string): Promise<{ success
       isVerified: true, // User is verified immediately
     };
     
-    await saveUser(userToSave);
+    await users.insertOne(userToSave);
 
     return { success: true, message: 'Account created successfully! You can now log in.' };
   } catch (error) {
@@ -48,63 +56,18 @@ export async function signUp(email: string, password: string): Promise<{ success
   }
 }
 
-export async function verifyOtp(email: string, otp: string): Promise<{ success: boolean; message: string }> {
-    try {
-        const user = await getUser(email);
-        if (!user || !user.otp || !user.otpExpires) {
-            return { success: false, message: 'No OTP request found for this email. Please request a new one.' };
-        }
-
-        if (user.otpExpires < Date.now()) {
-            return { success: false, message: 'Your OTP has expired. Please request a new one.' };
-        }
-
-        if (user.otp !== otp) {
-            return { success: false, message: 'Invalid OTP. Please try again.' };
-        }
-
-        const verifiedUser: User = { ...user, isVerified: true, otp: undefined, otpExpires: undefined };
-        await saveUser(verifiedUser);
-
-        return { success: true, message: 'Email verified successfully! You can now log in.' };
-    } catch(error) {
-        console.error('Error during OTP verification:', error);
-        return { success: false, message: 'An unexpected error occurred.' };
-    }
-}
-
-export async function resendVerificationOtp(email: string): Promise<{ success: boolean; message: string }> {
-    try {
-        const user = await getUser(email);
-        if (!user) {
-            return { success: false, message: "No account found with this email." };
-        }
-        if (user.isVerified) {
-            return { success: false, message: "This account is already verified."};
-        }
-
-        const otp = generateOtp();
-        const otpExpires = Date.now() + 10 * 60 * 1000;
-        await saveUser({ ...user, otp, otpExpires });
-        await sendOtpEmail(email, otp);
-
-        return { success: true, message: 'A new verification code has been sent.' };
-
-    } catch (error) {
-        console.error('Error resending OTP:', error);
-        return { success: false, message: 'Failed to resend OTP.' };
-    }
-}
-
 export async function login(email: string, password: string): Promise<{ success: boolean; message: string; user?: Omit<User, 'password' | 'otp' | 'otpExpires'>, requiresVerification?: boolean }> {
   try {
-    const user = await getUser(email);
+    const users = await getUsersCollection();
+    const user = (await users.findOne({ email })) as User | null;
 
     if (!user || !user.password) {
       return { success: false, message: 'Invalid email or password.' };
     }
     
     if (!user.isVerified) {
+        // This part of the code may not be reachable if sign-up automatically verifies users.
+        // Kept for potential future use cases.
         return { success: false, message: 'Account not verified.', requiresVerification: true };
     }
 
@@ -126,7 +89,9 @@ export async function login(email: string, password: string): Promise<{ success:
 
 export async function requestPasswordReset(email: string): Promise<{ success: boolean, message: string }> {
     try {
-        const user = await getUser(email);
+        const users = await getUsersCollection();
+        const user = await users.findOne({ email });
+
         if (!user) {
             // To prevent user enumeration, we send a success message even if the user doesn't exist.
             return { success: true, message: "If an account with that email exists, a password reset code has been sent." };
@@ -135,7 +100,7 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
         const otp = generateOtp();
         const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
         
-        await saveUser({ ...user, otp, otpExpires });
+        await users.updateOne({ email }, { $set: { otp, otpExpires }});
         await sendPasswordResetEmail(email, otp);
 
         return { success: true, message: "If an account with that email exists, a password reset code has been sent." };
@@ -147,7 +112,9 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
 
 export async function resetPasswordWithOtp(email: string, otp: string, newPassword: string): Promise<{ success: boolean, message: string }> {
     try {
-        const user = await getUser(email);
+        const users = await getUsersCollection();
+        const user = (await users.findOne({ email })) as User | null;
+
         if (!user || !user.otp || !user.otpExpires) {
             return { success: false, message: 'Invalid or expired password reset request.' };
         }
@@ -159,13 +126,7 @@ export async function resetPasswordWithOtp(email: string, otp: string, newPasswo
         }
 
         const hashedPassword = await hashPassword(newPassword);
-        const updatedUser: User = { 
-            ...user, 
-            password: hashedPassword, 
-            otp: undefined, 
-            otpExpires: undefined 
-        };
-        await saveUser(updatedUser);
+        await users.updateOne({ email }, { $set: { password: hashedPassword, otp: undefined, otpExpires: undefined } });
 
         return { success: true, message: 'Password has been reset successfully. You can now log in.' };
     } catch (error) {
@@ -176,7 +137,9 @@ export async function resetPasswordWithOtp(email: string, otp: string, newPasswo
 
 export async function createUserAsAdmin(email: string, password: string): Promise<{ success: boolean; message: string }> {
   try {
-    const existingUser = await getUser(email);
+    const users = await getUsersCollection();
+    const existingUser = await users.findOne({ email });
+
     if (existingUser) {
       return { success: false, message: 'An account with this email already exists.' };
     }
@@ -190,11 +153,39 @@ export async function createUserAsAdmin(email: string, password: string): Promis
       isVerified: true, // Automatically verify admin-created users
     };
 
-    await saveUser(newUser);
+    await users.insertOne(newUser);
 
     return { success: true, message: 'User created successfully.' };
   } catch (error) {
     console.error('Error creating user as admin:', error);
     return { success: false, message: 'Failed to create user. Please try again.' };
   }
+}
+
+// These functions are for the admin page to interact with the MongoDB database.
+export async function getAllUsers(): Promise<User[]> {
+    const usersCollection = await getUsersCollection();
+    const users = await usersCollection.find({}).toArray();
+    // @ts-ignore
+    return users.map(({ _id, ...user }) => ({ ...user, id: user.email }));
+}
+
+export async function saveUser(user: User): Promise<void> {
+    const usersCollection = await getUsersCollection();
+    await usersCollection.updateOne({ email: user.email }, { $set: user }, { upsert: true });
+}
+
+export async function deleteUser(email: string): Promise<void> {
+    const usersCollection = await getUsersCollection();
+    await usersCollection.deleteOne({ email });
+}
+
+export async function getUser(email: string): Promise<User | null> {
+    const usersCollection = await getUsersCollection();
+    const user = await usersCollection.findOne({ email });
+    if (user) {
+        const { _id, ...rest } = user;
+        return rest as User;
+    }
+    return null;
 }

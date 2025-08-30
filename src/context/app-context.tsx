@@ -33,7 +33,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
       const updatedPlaylists = [...state.playlists, newPlaylist];
       if (typeof window !== 'undefined') {
         localStorage.setItem('playlists', JSON.stringify(updatedPlaylists));
-        savePlaylistToFirebase(newPlaylist);
+        // Note: savePlaylistToFirebase is now a no-op since we moved to MongoDB for user data.
+        // Playlist data is managed client-side with localStorage.
+        // savePlaylistToFirebase(newPlaylist); 
       }
       return { ...state, playlists: updatedPlaylists };
     }
@@ -41,7 +43,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       const updatedPlaylists = state.playlists.map((p) => {
         if (p.id === action.payload.playlistId) {
           const newPlaylist = { ...p, tracks: [...p.tracks, action.payload.track] };
-          savePlaylistToFirebase(newPlaylist);
+          // savePlaylistToFirebase(newPlaylist);
           return newPlaylist;
         }
         return p;

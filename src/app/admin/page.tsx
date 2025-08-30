@@ -1,7 +1,7 @@
 
 'use client';
 import { useState, useEffect } from 'react';
-import { deleteUser, getAllUsers, saveUser } from '@/lib/firebase';
+import { deleteUser, getAllUsers, saveUser } from '@/lib/auth';
 import { createUserAsAdmin } from '@/lib/auth';
 import type { User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -59,10 +59,15 @@ export default function AdminPage() {
 
   const fetchUsers = async () => {
     setIsLoading(true);
-    const fetchedUsers = await getAllUsers();
-    setUsers(fetchedUsers);
-    setFilteredUsers(fetchedUsers);
-    setIsLoading(false);
+    try {
+      const fetchedUsers = await getAllUsers();
+      setUsers(fetchedUsers);
+      setFilteredUsers(fetchedUsers);
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Failed to fetch users', description: 'Could not connect to the database. Please ensure the MongoDB URI is correct.' });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const handleEdit = (user: User) => {
@@ -73,11 +78,6 @@ export default function AdminPage() {
     if (!editingUser) return;
     
     setIsUpdating(true);
-    const originalUser = users.find(u => u.createdAt === editingUser.createdAt);
-    if (originalUser && originalUser.email !== editingUser.email) {
-        await deleteUser(originalUser.email);
-    }
-
     await saveUser(editingUser);
     setEditingUser(null);
     await fetchUsers();
@@ -187,7 +187,7 @@ export default function AdminPage() {
               <TableRow key={user.createdAt}>
                 <TableCell>
                   {editingUser?.createdAt === user.createdAt ? (
-                    <Input value={editingUser.email} onChange={e => setEditingUser({...editingUser, email: e.target.value, id: e.target.value })} />
+                    <Input value={editingUser.email} onChange={e => setEditingUser({...editingUser, email: e.target.value, id: e.target.value })} disabled />
                   ) : user.email}
                 </TableCell>
                 <TableCell>{new Date(user.createdAt).toLocaleString()}</TableCell>
