@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
-import type { Track, Playlist } from '@/lib/types';
+import React, { createContext, useContext, useReducer, useEffect, type ReactNode, useState } from 'react';
+import type { Track, Playlist, User } from '@/lib/types';
 import { savePlaylistToFirebase } from '@/lib/firebase';
 
 interface AppState {
@@ -60,12 +60,15 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
 interface AppContextType extends AppState {
   dispatch: React.Dispatch<AppAction>;
+  loggedInUser: User | null;
+  setLoggedInUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
 
   useEffect(() => {
     try {
@@ -73,12 +76,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (storedPlaylists) {
         dispatch({ type: 'LOAD_PLAYLISTS', payload: JSON.parse(storedPlaylists) });
       }
+      const storedUser = localStorage.getItem('loggedInUser');
+      if(storedUser) {
+        setLoggedInUser(JSON.parse(storedUser));
+      }
     } catch (error) {
-      console.error("Could not load playlists from localStorage", error);
+      console.error("Could not load from localStorage", error);
     }
   }, []);
 
-  return <AppContext.Provider value={{ ...state, dispatch }}>{children}</AppContext.Provider>;
+  return <AppContext.Provider value={{ ...state, dispatch, loggedInUser, setLoggedInUser }}>{children}</AppContext.Provider>;
 }
 
 export function useApp() {

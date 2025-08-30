@@ -12,8 +12,17 @@ export interface Playlist {
   tracks: Track[];
 }
 
+export interface User {
+  id: string; // email
+  email: string;
+  otp?: string;
+  otpExpires?: number;
+  createdAt: number;
+}
+
 export type View =
   | { type: 'discover'; results?: Track[] }
   | { type: 'recommendations' }
   | { type: 'playlist'; playlistId: string }
-  | { type: 'search'; query: string; results?: Track[] };
+  | { type: 'search'; query: string; results?: Track[] }
+  | { type: 'login' };
