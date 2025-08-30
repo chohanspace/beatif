@@ -1,0 +1,17 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        // Allow users to read and write their own data.
+        // The $uid variable in the rule matches the user's email, which is used as the key.
+        ".read": "auth != null && auth.token.email.replace('.', ',') === $uid",
+        ".write": "auth != null && auth.token.email.replace('.', ',') === $uid"
+      }
+    },
+    "playlists": {
+      // Allow any authenticated user to read/write playlists.
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+}
