@@ -12,11 +12,13 @@ export async function requestLogin(email: string): Promise<{ success: boolean; m
     const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     if (user) {
+      // If user exists, just update OTP fields
       user.otp = otp;
       user.otpExpires = otpExpires;
     } else {
+      // If user is new, create the full user object
       user = {
-        id: email, // Ensure the ID is the email
+        id: email, // The document ID will be the user's email
         email,
         otp,
         otpExpires,
@@ -24,6 +26,7 @@ export async function requestLogin(email: string): Promise<{ success: boolean; m
       };
     }
 
+    // Save the user object. `saveUser` should use user.id as the document key.
     await saveUser(user);
     await sendOtpEmail(email, otp);
 
@@ -54,6 +57,8 @@ export async function verifyOtp(email: string, otp: string): Promise<{ success: 
     const loggedInUser: User = { ...user };
     delete loggedInUser.otp;
     delete loggedInUser.otpExpires;
+    
+    // Save the user object again to clear OTP from the database
     await saveUser(loggedInUser);
     
     // Return user object without sensitive OTP info

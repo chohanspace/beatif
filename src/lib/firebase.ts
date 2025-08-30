@@ -55,6 +55,7 @@ export async function saveUser(user: User) {
     const app = getFirebaseApp();
     if (!app) return;
     const db = getDatabase(app);
+    // Use user.id (which is the email) as the key for the user document.
     await set(ref(db, 'users/' + user.id), user);
 }
 
@@ -62,6 +63,7 @@ export async function getUser(email: string): Promise<User | null> {
     const app = getFirebaseApp();
     if (!app) return null;
     const db = getDatabase(app);
+    // Use the email directly as the key to look up the user.
     const snapshot = await get(child(ref(db), `users/${email}`));
     if (snapshot.exists()) {
         return snapshot.val() as User;

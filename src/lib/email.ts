@@ -20,59 +20,69 @@ function getEmailHtml(otp: string) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Your Beatif Login Code</title>
         <style>
+            @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
             body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+                font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
                 margin: 0;
                 padding: 0;
-                background-color: #f4f4f7;
+                background-color: #f0f2f5;
                 color: #333;
             }
-            .container {
+            .email-container {
                 max-width: 600px;
                 margin: 40px auto;
                 background-color: #ffffff;
-                border-radius: 12px;
+                border-radius: 16px;
                 overflow: hidden;
-                box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+                box-shadow: 0 10px 30px rgba(0,0,0,0.07);
+                border: 1px solid #e9ecef;
             }
             .header {
-                background-color: hsl(240 10% 3.9%);
+                background-image: linear-gradient(to right, hsl(120, 60%, 45%), hsl(120, 70%, 55%));
                 color: #ffffff;
-                padding: 30px;
+                padding: 40px;
                 text-align: center;
             }
             .header h1 {
                 margin: 0;
-                font-size: 28px;
+                font-size: 36px;
                 font-weight: 700;
-                color: hsl(120 60% 50%);
+                letter-spacing: -1px;
             }
             .content {
-                padding: 40px;
+                padding: 40px 30px;
                 text-align: center;
-                line-height: 1.6;
+                line-height: 1.7;
             }
             .content p {
                 font-size: 18px;
-                margin: 0 0 20px;
+                margin: 0 0 24px;
+                color: #555;
             }
             .otp-code {
-                display: inline-block;
-                font-size: 36px;
+                font-family: 'monospace';
+                font-size: 42px;
                 font-weight: 700;
-                letter-spacing: 8px;
-                color: hsl(120 60% 45%);
-                background-color: #e8f5e9;
-                padding: 15px 25px;
-                border-radius: 8px;
-                margin: 20px 0;
+                letter-spacing: 10px;
+                color: hsl(120, 60%, 35%);
+                background-color: hsl(120, 60%, 95%);
+                padding: 20px 30px;
+                border-radius: 12px;
+                margin: 20px auto 30px;
+                display: inline-block;
+                border: 2px dashed hsl(120, 60%, 80%);
+            }
+            .info {
+                font-size: 14px;
+                color: #888;
             }
             .footer {
                 background-color: #f8f9fa;
-                padding: 20px;
+                padding: 25px;
                 text-align: center;
                 font-size: 14px;
-                color: #6c757d;
+                color: #888;
+                border-top: 1px solid #e9ecef;
             }
             .footer p {
                 margin: 0;
@@ -80,17 +90,16 @@ function getEmailHtml(otp: string) {
         </style>
     </head>
     <body>
-        <div class="container">
+        <div class="email-container">
             <div class="header">
                 <h1>Beatif</h1>
             </div>
             <div class="content">
-                <p>Here is your one-time password to log in to your account.</p>
+                <p>Your one-time password is below.</p>
                 <div class="otp-code">${otp}</div>
-                <p>This code will expire in 10 minutes. Please do not share it with anyone.</p>
+                <p class="info">This code will expire in 10 minutes. If you did not request this, you can safely ignore this email.</p>
             </div>
             <div class="footer">
-                <p>If you did not request this, you can safely ignore this email.</p>
                 <p>&copy; ${new Date().getFullYear()} Beatif. All rights reserved.</p>
             </div>
         </div>
@@ -100,13 +109,18 @@ function getEmailHtml(otp: string) {
 }
 
 export async function sendOtpEmail(to: string, otp: string) {
-  const mailOptions = {
-    from: `"Beatif" <${process.env.GMAIL_EMAIL}>`,
-    to,
-    subject: 'Your Beatif Login Code',
-    text: `Your one-time password is: ${otp}`,
-    html: getEmailHtml(otp),
-  };
-
-  await transporter.sendMail(mailOptions);
+  try {
+    const mailOptions = {
+        from: `"Beatif" <${process.env.GMAIL_EMAIL}>`,
+        to,
+        subject: `Your Beatif Login Code: ${otp}`,
+        text: `Your one-time password is: ${otp}`,
+        html: getEmailHtml(otp),
+    };
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error("Error sending email:", error);
+    // In a real app, you might want to throw this error 
+    // or handle it more gracefully.
+  }
 }
