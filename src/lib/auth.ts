@@ -25,17 +25,18 @@ function generateOtp(): string {
 export async function signUp(email: string, password: string): Promise<{ success: boolean; message: string }> {
   try {
     const existingUser = await getUser(email);
+    const otp = generateOtp();
+    const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     if (existingUser) {
         if (existingUser.isVerified) {
              return { success: false, message: 'An account with this email already exists and is verified.' };
         }
-        // If user exists but is not verified, send a new OTP.
-        const otp = generateOtp();
+        // If user exists but is not verified, just update OTP and resend.
         const updatedUser: User = { 
             ...existingUser, 
             otp, 
-            otpExpires: Date.now() + 10 * 60 * 1000, // 10 minutes
+            otpExpires,
         };
         await saveUser(updatedUser);
         await sendOtpEmail(email, otp);
@@ -44,7 +45,6 @@ export async function signUp(email: string, password: string): Promise<{ success
 
     // If user does not exist, create a new one.
     const hashedPassword = await hashPassword(password);
-    const otp = generateOtp();
     const newUser: User = {
         id: email, 
         email,
@@ -52,7 +52,7 @@ export async function signUp(email: string, password: string): Promise<{ success
         createdAt: Date.now(),
         isVerified: false,
         otp,
-        otpExpires: Date.now() + 10 * 60 * 1000, // 10 minutes
+        otpExpires,
     };
     
     await saveUser(newUser);
@@ -145,6 +145,7 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
     try {
         const user = await getUser(email);
         if (!user) {
+            // To prevent user enumeration, we send a success message even if the user doesn't exist.
             return { success: true, message: "If an account with that email exists, a password reset code has been sent." };
         }
 
