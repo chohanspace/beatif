@@ -25,19 +25,24 @@ function generateOtp(): string {
 export async function signUp(email: string, password: string): Promise<{ success: boolean; message: string }> {
   try {
     const existingUser = await getUser(email);
-    if (existingUser && existingUser.isVerified) {
-        return { success: false, message: 'An account with this email already exists and is verified.' };
-    }
-    
-    if (existingUser && !existingUser.isVerified) {
-        // Resend OTP for unverified user trying to sign up again
+
+    if (existingUser) {
+        // If user exists, even if not verified, just send a new OTP.
+        if (existingUser.isVerified) {
+             return { success: false, message: 'An account with this email already exists and is verified.' };
+        }
         const otp = generateOtp();
-        const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-        await saveUser({ ...existingUser, otp, otpExpires });
+        const updatedUser: User = { 
+            ...existingUser, 
+            otp, 
+            otpExpires: Date.now() + 10 * 60 * 1000, // 10 minutes
+        };
+        await saveUser(updatedUser);
         await sendOtpEmail(email, otp);
         return { success: true, message: 'A new verification code has been sent. Please check your email.' };
     }
 
+    // If user does not exist, create a new one.
     const hashedPassword = await hashPassword(password);
     const otp = generateOtp();
     const newUser: User = {
@@ -142,7 +147,7 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
         const user = await getUser(email);
         if (!user) {
             // Still return success to prevent email enumeration
-            return { success: true, message: "If an account with that email exists, a password reset link has been sent." };
+            return { success: true, message: "If an account with that email exists, a password reset code has been sent." };
         }
 
         const otp = generateOtp();
@@ -151,7 +156,7 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
         await saveUser({ ...user, otp, otpExpires });
         await sendPasswordResetEmail(email, otp);
 
-        return { success: true, message: "If an account with that email exists, a password reset link has been sent." };
+        return { success: true, message: "If an account with that email exists, a password reset code has been sent." };
     } catch (error) {
         console.error("Error requesting password reset:", error);
         return { success: false, message: "An unexpected error occurred." };
