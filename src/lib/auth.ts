@@ -166,13 +166,17 @@ export async function createUserAsAdmin(email: string, password: string): Promis
 export async function getAllUsers(): Promise<User[]> {
     const usersCollection = await getUsersCollection();
     const users = await usersCollection.find({}).toArray();
-    // @ts-ignore
-    return users.map(({ _id, ...user }) => ({ ...user, id: user.email }));
+    // Convert MongoDB documents to plain objects
+    return users.map((user) => {
+        const { _id, ...rest } = user;
+        return { ...rest, id: _id.toString() } as User;
+    });
 }
 
 export async function saveUser(user: User): Promise<void> {
     const usersCollection = await getUsersCollection();
-    await usersCollection.updateOne({ email: user.email }, { $set: user }, { upsert: true });
+    const { id, ...userToSave } = user;
+    await usersCollection.updateOne({ email: user.email }, { $set: userToSave }, { upsert: true });
 }
 
 export async function deleteUser(email: string): Promise<void> {
@@ -185,7 +189,7 @@ export async function getUser(email: string): Promise<User | null> {
     const user = await usersCollection.findOne({ email });
     if (user) {
         const { _id, ...rest } = user;
-        return rest as User;
+        return { ...rest, id: _id.toString() } as User;
     }
     return null;
 }
