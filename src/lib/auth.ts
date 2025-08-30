@@ -26,44 +26,22 @@ export async function signUp(email: string, password: string): Promise<{ success
   try {
     const existingUser = await getUser(email);
 
-    if (existingUser && existingUser.isVerified) {
-      return { success: false, message: 'An account with this email already exists and is verified.' };
-    }
-
-    const otp = generateOtp();
-    const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-    let userToSave: User;
-
     if (existingUser) {
-      // User exists but is not verified. Update OTP.
-      userToSave = { 
-        ...existingUser, 
-        otp, 
-        otpExpires,
-      };
-    } else {
-      // New user. Create a new record.
-      const hashedPassword = await hashPassword(password);
-      userToSave = {
-        id: email, 
-        email,
-        password: hashedPassword,
-        createdAt: Date.now(),
-        isVerified: false,
-        otp,
-        otpExpires,
-      };
+      return { success: false, message: 'An account with this email already exists.' };
     }
+
+    const hashedPassword = await hashPassword(password);
+    const userToSave: User = {
+      id: email, 
+      email,
+      password: hashedPassword,
+      createdAt: Date.now(),
+      isVerified: true, // User is verified immediately
+    };
     
     await saveUser(userToSave);
-    await sendOtpEmail(email, otp);
 
-    const message = existingUser 
-      ? 'A new verification code has been sent. Please check your email.'
-      : 'Account created! Please check your email for the verification code.';
-
-    return { success: true, message };
+    return { success: true, message: 'Account created successfully! You can now log in.' };
   } catch (error) {
     console.error('Error during sign up:', error);
     return { success: false, message: 'Failed to create account. Please try again.' };
