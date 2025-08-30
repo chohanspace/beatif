@@ -25,27 +25,27 @@ function generateOtp(): string {
 export async function signUp(email: string, password: string): Promise<{ success: boolean; message: string }> {
   try {
     const existingUser = await getUser(email);
+
+    if (existingUser && existingUser.isVerified) {
+      return { success: false, message: 'An account with this email already exists and is verified.' };
+    }
+
     const otp = generateOtp();
     const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    if (existingUser) {
-        if (existingUser.isVerified) {
-             return { success: false, message: 'An account with this email already exists and is verified.' };
-        }
-        // If user exists but is not verified, just update OTP and resend.
-        const updatedUser: User = { 
-            ...existingUser, 
-            otp, 
-            otpExpires,
-        };
-        await saveUser(updatedUser);
-        await sendOtpEmail(email, otp);
-        return { success: true, message: 'A new verification code has been sent. Please check your email.' };
-    }
+    let userToSave: User;
 
-    // If user does not exist, create a new one.
-    const hashedPassword = await hashPassword(password);
-    const newUser: User = {
+    if (existingUser) {
+      // User exists but is not verified. Update OTP.
+      userToSave = { 
+        ...existingUser, 
+        otp, 
+        otpExpires,
+      };
+    } else {
+      // New user. Create a new record.
+      const hashedPassword = await hashPassword(password);
+      userToSave = {
         id: email, 
         email,
         password: hashedPassword,
@@ -53,12 +53,17 @@ export async function signUp(email: string, password: string): Promise<{ success
         isVerified: false,
         otp,
         otpExpires,
-    };
+      };
+    }
     
-    await saveUser(newUser);
+    await saveUser(userToSave);
     await sendOtpEmail(email, otp);
 
-    return { success: true, message: 'Account created! Please check your email for the verification code.' };
+    const message = existingUser 
+      ? 'A new verification code has been sent. Please check your email.'
+      : 'Account created! Please check your email for the verification code.';
+
+    return { success: true, message };
   } catch (error) {
     console.error('Error during sign up:', error);
     return { success: false, message: 'Failed to create account. Please try again.' };
@@ -69,7 +74,7 @@ export async function verifyOtp(email: string, otp: string): Promise<{ success: 
     try {
         const user = await getUser(email);
         if (!user || !user.otp || !user.otpExpires) {
-            return { success: false, message: 'No OTP request found for this email. Please sign up again.' };
+            return { success: false, message: 'No OTP request found for this email. Please request a new one.' };
         }
 
         if (user.otpExpires < Date.now()) {
