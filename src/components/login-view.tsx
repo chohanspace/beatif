@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, type Dispatch, type SetStateAction } from 'react';
@@ -10,7 +11,15 @@ import { requestLogin, verifyOtp } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -27,9 +36,9 @@ interface LoginViewProps {
 }
 
 export default function LoginView({ setView }: LoginViewProps) {
-  const [step, setStep] = useState<'email' | 'otp'>('email');
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isOtpDialogOpen, setIsOtpDialogOpen] = useState(false);
   const { setLoggedInUser } = useApp();
   const { toast } = useToast();
 
@@ -48,7 +57,7 @@ export default function LoginView({ setView }: LoginViewProps) {
     const { success, message } = await requestLogin(data.email);
     if (success) {
       setEmail(data.email);
-      setStep('otp');
+      setIsOtpDialogOpen(true);
       toast({ title: 'Check your email', description: message });
     } else {
       toast({ variant: 'destructive', title: 'Error', description: message });
@@ -64,6 +73,7 @@ export default function LoginView({ setView }: LoginViewProps) {
         if(typeof window !== 'undefined'){
             localStorage.setItem('loggedInUser', JSON.stringify(user));
         }
+        setIsOtpDialogOpen(false);
         toast({ title: 'Success!', description: 'You are now logged in.' });
         setView({ type: 'discover' });
     } else {
@@ -75,71 +85,67 @@ export default function LoginView({ setView }: LoginViewProps) {
   return (
     <div className="flex justify-center items-center h-full">
       <Card className="w-full max-w-sm">
-        {step === 'email' ? (
-          <>
-            <CardHeader>
-              <CardTitle>Login / Sign Up</CardTitle>
-              <CardDescription>Enter your email to receive a login code.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...emailForm}>
-                <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-6">
-                  <FormField
-                    control={emailForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="you@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Send Code
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </>
-        ) : (
-          <>
-            <CardHeader>
-              <CardTitle>Enter Your Code</CardTitle>
-              <CardDescription>We sent a 6-digit code to {email}.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...otpForm}>
-                <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="space-y-6">
-                  <FormField
-                    control={otpForm.control}
-                    name="otp"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>One-Time Password</FormLabel>
-                        <FormControl>
-                          <Input placeholder="123456" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex gap-2">
-                    <Button variant="ghost" onClick={() => setStep('email')} disabled={isLoading}>Back</Button>
-                    <Button type="submit" className="flex-1" disabled={isLoading}>
-                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Verify & Login
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </>
-        )}
+        <CardHeader>
+          <CardTitle>Login / Sign Up</CardTitle>
+          <CardDescription>Enter your email to receive a login code.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...emailForm}>
+            <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-6">
+              <FormField
+                control={emailForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="you@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Send Code
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
       </Card>
+
+      <Dialog open={isOtpDialogOpen} onOpenChange={setIsOtpDialogOpen}>
+        <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Enter Your Code</DialogTitle>
+            <DialogDescription>We sent a 6-digit code to {email}.</DialogDescription>
+          </DialogHeader>
+          <Form {...otpForm}>
+            <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="space-y-6">
+              <FormField
+                control={otpForm.control}
+                name="otp"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>One-Time Password</FormLabel>
+                    <FormControl>
+                      <Input placeholder="123456" {...field} autoFocus />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className="gap-2 sm:justify-end">
+                 <Button type="button" variant="ghost" onClick={() => setIsOtpDialogOpen(false)} disabled={isLoading}>Back</Button>
+                 <Button type="submit" className="flex-1" disabled={isLoading}>
+                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                   Verify & Login
+                 </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
