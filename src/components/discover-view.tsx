@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
@@ -6,6 +7,7 @@ import type { Track, View } from '@/lib/types';
 import TrackCard from './track-card';
 import { Button } from './ui/button';
 import { GearsLoader } from './ui/gears-loader';
+import { useApp } from '@/context/app-context';
 
 const moods = ['Happy', 'Relaxed', 'Energetic', 'Melancholy', 'Romantic'];
 
@@ -18,12 +20,13 @@ export default function DiscoverView({ setView, initialResults }: DiscoverViewPr
   const [isLoading, setIsLoading] = useState(false);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [moodResults, setMoodResults] = useState<Track[]>(initialResults || []);
+  const { loggedInUser } = useApp();
 
   const handleMoodSelect = async (mood: string) => {
     setIsLoading(true);
     setSelectedMood(mood);
     setMoodResults([]);
-    const tracks = await getTracksForMood(mood);
+    const tracks = await getTracksForMood(mood, loggedInUser?.country);
     setMoodResults(tracks);
     setIsLoading(false);
   };
@@ -39,7 +42,10 @@ export default function DiscoverView({ setView, initialResults }: DiscoverViewPr
       <div>
         <h2 className="text-3xl font-bold font-headline mb-4">Discover</h2>
         <p className="text-muted-foreground text-lg">
-          Select a mood to get a personalized playlist generated just for you.
+          {loggedInUser?.country 
+            ? `Select a mood to get a personalized playlist for ${loggedInUser.country}.`
+            : 'Select a mood to get a personalized playlist generated just for you.'
+          }
         </p>
       </div>
 

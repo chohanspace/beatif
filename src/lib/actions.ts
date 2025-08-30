@@ -14,21 +14,30 @@ const mockTracks: Track[] = [
     { id: '4', title: 'Forest Whisper', artist: 'Silent Grove', youtubeId: 'o-YBDTqX_ZU', thumbnail: 'https://picsum.photos/seed/4/300/300' },
     { id: '5', title: 'Desert Mirage', artist: 'The Nomads', youtubeId: '9g8SFYR4c9I', thumbnail: 'https://picsum.photos/seed/5/300/300' },
     { id: '6', title: 'Mountain Call', artist: 'Echo Peak', youtubeId: '2Vv-BfVoq44', thumbnail: 'https://picsum.photos/seed/6/300/300' },
+    { id: '7', title: 'Tokyo Drift', artist: 'Teriyaki Boyz', youtubeId: 'ua_tsa1h1vI', thumbnail: 'https://picsum.photos/seed/7/300/300' },
+    { id: '8', title: 'Indian Summer', artist: 'Jai Wolf', youtubeId: 'cKx92QPROaM', thumbnail: 'https://picsum.photos/seed/8/300/300' },
+    { id: '9', title: 'Paris', artist: 'The Chainsmokers', youtubeId: 'f2JuxM-snGc', thumbnail: 'https://picsum.photos/seed/9/300/300' },
 ];
 
 export async function searchYoutube(query: string): Promise<Track[]> {
   console.log(`Searching for: ${query}`);
   // In a real app, you would fetch from the YouTube API.
   // For now, we filter our mock data.
-  if (!query) return mockTracks.slice(0, 3);
-  return mockTracks.filter(track => 
+  const filteredTracks = mockTracks.filter(track => 
     track.title.toLowerCase().includes(query.toLowerCase()) ||
     track.artist.toLowerCase().includes(query.toLowerCase())
   );
+
+  if (filteredTracks.length > 0) {
+    return filteredTracks;
+  }
+  
+  // If no results, return a random selection to make search feel more responsive
+  return [...mockTracks].sort(() => 0.5 - Math.random()).slice(0, 5);
 }
 
-export async function getTracksForMood(mood: string): Promise<Track[]> {
-    console.log(`Getting tracks for mood: ${mood}`);
+export async function getTracksForMood(mood: string, country?: string): Promise<Track[]> {
+    console.log(`Getting tracks for mood: ${mood} in country: ${country}`);
     // Simulate an API call delay
     await new Promise(resolve => setTimeout(resolve, 1000));
     // Return a shuffled and sliced list of mock tracks

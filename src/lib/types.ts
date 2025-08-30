@@ -22,6 +22,7 @@ export interface User {
   isVerified?: boolean;
   otp?: string;
   otpExpires?: number;
+  country?: string;
 }
 
 export type View =
