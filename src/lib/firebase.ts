@@ -62,11 +62,13 @@ export async function saveUser(user: User) {
 export async function getUser(email: string): Promise<User | null> {
     const app = getFirebaseApp();
     if (!app) return null;
-    const db = getDatabase(app);
+    const dbRef = ref(getDatabase(app));
     // Use the email directly as the key to look up the user.
-    const snapshot = await get(child(ref(db), `users/${email}`));
+    const snapshot = await get(child(dbRef, `users/${email}`));
     if (snapshot.exists()) {
-        return snapshot.val() as User;
+        const user = snapshot.val();
+        // The key of the user object is the ID in firebase, let's make sure it's part of the object
+        return { ...user, id: snapshot.key };
     }
     return null;
 }
