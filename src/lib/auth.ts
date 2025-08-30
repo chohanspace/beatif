@@ -93,3 +93,4 @@ export async function verifyOtp(email: string, otp: string): Promise<{ success: 
     return { success: false, message: 'An error occurred during verification.' };
   }
 }
+

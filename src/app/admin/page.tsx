@@ -69,6 +69,13 @@ export default function AdminPage() {
   const handleSave = async () => {
     if (!editingUser) return;
     
+    // When saving, we might be changing the email, which is the ID.
+    // We need to delete the old record if the email has changed.
+    const originalUser = users.find(u => u.createdAt === editingUser.createdAt);
+    if (originalUser && originalUser.email !== editingUser.email) {
+        await deleteUser(originalUser.email);
+    }
+
     await saveUser(editingUser);
     setEditingUser(null);
     fetchUsers();
@@ -150,15 +157,15 @@ export default function AdminPage() {
           </TableHeader>
           <TableBody>
             {filteredUsers.map(user => (
-              <TableRow key={user.id}>
+              <TableRow key={user.createdAt}>
                 <TableCell>
-                  {editingUser?.id === user.id ? (
-                    <Input value={editingUser.email} onChange={e => setEditingUser({...editingUser, email: e.target.value })} />
+                  {editingUser?.createdAt === user.createdAt ? (
+                    <Input value={editingUser.email} onChange={e => setEditingUser({...editingUser, email: e.target.value, id: e.target.value })} />
                   ) : user.email}
                 </TableCell>
                 <TableCell>{new Date(user.createdAt).toLocaleString()}</TableCell>
                 <TableCell className="space-x-2">
-                  {editingUser?.id === user.id ? (
+                  {editingUser?.createdAt === user.createdAt ? (
                     <>
                       <Button size="icon" variant="ghost" onClick={handleSave}><Save className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" onClick={() => setEditingUser(null)}>
@@ -169,7 +176,7 @@ export default function AdminPage() {
                     <>
                       <Button size="icon" variant="ghost" onClick={() => handleEdit(user)}><Edit className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" onClick={() => setShowDeleteConfirm(user)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      <Button size="icon" variant="ghost" onClick={handlePasswordChange} title="Change Password"><Key className="h-4 w-4"/></Button>
+                      <Button size="icon" variant="ghost" onClick={() => { setEditingUser(user); handlePasswordChange(); }} title="Change Password"><Key className="h-4 w-4"/></Button>
                     </>
                   )}
                 </TableCell>

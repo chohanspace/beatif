@@ -29,6 +29,11 @@ function getFirebaseApp() {
     return initializeApp(firebaseConfig);
 }
 
+// Firebase keys cannot contain '.', so we replace them.
+const sanitizeEmail = (email: string) => email.replace(/\./g, ',');
+const desanitizeEmail = (email: string) => email.replace(/,/g, '.');
+
+
 /**
  * Saves a user's playlist to the Firebase Realtime Database.
  * NOTE: This is a simplified example. In a real app, you'd likely want to
@@ -56,7 +61,7 @@ export async function saveUser(user: User) {
     if (!app) return;
     const db = getDatabase(app);
     // Use user.id (which is the email) as the key for the user document.
-    await set(ref(db, 'users/' + user.id), user);
+    await set(ref(db, 'users/' + sanitizeEmail(user.id)), user);
 }
 
 export async function getUser(email: string): Promise<User | null> {
@@ -64,11 +69,11 @@ export async function getUser(email: string): Promise<User | null> {
     if (!app) return null;
     const dbRef = ref(getDatabase(app));
     // Use the email directly as the key to look up the user.
-    const snapshot = await get(child(dbRef, `users/${email}`));
+    const snapshot = await get(child(dbRef, `users/${sanitizeEmail(email)}`));
     if (snapshot.exists()) {
         const user = snapshot.val();
         // The key of the user object is the ID in firebase, let's make sure it's part of the object
-        return { ...user, id: snapshot.key };
+        return { ...user, id: desanitizeEmail(snapshot.key!) };
     }
     return null;
 }
@@ -80,7 +85,7 @@ export async function getAllUsers(): Promise<User[]> {
     const snapshot = await get(ref(db, 'users'));
     if (snapshot.exists()) {
         const usersObject = snapshot.val();
-        return Object.values(usersObject);
+        return Object.values(usersObject).map((user: any) => ({ ...user, id: desanitizeEmail(user.id) }));
     }
     return [];
 }
@@ -89,5 +94,6 @@ export async function deleteUser(email: string): Promise<void> {
     const app = getFirebaseApp();
     if (!app) return;
     const db = getDatabase(app);
-    await remove(ref(db, 'users/' + email));
+    await remove(ref(db, 'users/' + sanitizeEmail(email)));
 }
+
