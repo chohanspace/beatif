@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -41,23 +41,47 @@ export default function LoginView({ setView }: LoginViewProps) {
   const [isOtpDialogOpen, setIsOtpDialogOpen] = useState(false);
   const { setLoggedInUser } = useApp();
   const { toast } = useToast();
+  const [cooldown, setCooldown] = useState(0);
+  const [resendAttempts, setResendAttempts] = useState(0);
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
-    defaultValues: { email: '' },
+    defaultValues: {
+      email: '',
+    },
   });
 
   const otpForm = useForm<z.infer<typeof otpSchema>>({
     resolver: zodResolver(otpSchema),
-    defaultValues: { otp: '' },
+    defaultValues: {
+      otp: '',
+    },
   });
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (cooldown > 0) {
+      timer = setInterval(() => {
+        setCooldown((prevCooldown) => prevCooldown - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  const startCooldown = () => {
+    const newCooldown = 30 + resendAttempts * 10;
+    setCooldown(newCooldown);
+    setResendAttempts(prev => prev + 1);
+  };
 
   async function onEmailSubmit(data: z.infer<typeof emailSchema>) {
     setIsLoading(true);
+    setResendAttempts(0);
     const { success, message } = await requestLogin(data.email);
     if (success) {
       setEmail(data.email);
       setIsOtpDialogOpen(true);
+      startCooldown();
       toast({ title: 'Check your email', description: message });
     } else {
       toast({ variant: 'destructive', title: 'Error', description: message });
@@ -78,6 +102,19 @@ export default function LoginView({ setView }: LoginViewProps) {
         setView({ type: 'discover' });
     } else {
         toast({ variant: 'destructive', title: 'Login Failed', description: message });
+    }
+    setIsLoading(false);
+  }
+  
+  async function handleResendOtp() {
+    if (cooldown > 0) return;
+    setIsLoading(true);
+    const { success, message } = await requestLogin(email);
+    if (success) {
+        startCooldown();
+        toast({ title: 'Check your email', description: message });
+    } else {
+        toast({ variant: 'destructive', title: 'Error', description: message });
     }
     setIsLoading(false);
   }
@@ -135,6 +172,18 @@ export default function LoginView({ setView }: LoginViewProps) {
                   </FormItem>
                 )}
               />
+              <div className="flex justify-end text-sm">
+                <Button 
+                    type="button" 
+                    variant="link"
+                    onClick={handleResendOtp}
+                    disabled={cooldown > 0 || isLoading}
+                    className="p-0 h-auto"
+                >
+                  Resend OTP
+                </Button>
+                {cooldown > 0 && <span className="ml-2 text-muted-foreground">in {cooldown}s</span>}
+              </div>
               <DialogFooter className="gap-2 sm:justify-end">
                  <Button type="button" variant="ghost" onClick={() => setIsOtpDialogOpen(false)} disabled={isLoading}>Back</Button>
                  <Button type="submit" className="flex-1" disabled={isLoading}>
