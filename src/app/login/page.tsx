@@ -81,12 +81,12 @@ export default function LoginPage() {
         toast({ title: 'Success!', description: 'You are now logged in.' });
         router.push('/');
     } else {
+        setIsLoading(false);
         toast({ variant: 'destructive', title: 'Login Failed', description: message });
         if(requiresVerification) {
             setShowOtpDialog(true);
         }
     }
-    setIsLoading(false);
   }
   
   async function onOtpSubmit(data: z.infer<typeof otpSchema>) {
