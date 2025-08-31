@@ -6,6 +6,7 @@ import { searchYoutube } from '@/lib/actions';
 import type { Track, View } from '@/lib/types';
 import TrackCard from './track-card';
 import { MusicalNotesLoader } from './ui/gears-loader';
+import { useDebounce } from '@/hooks/use-debounce';
 
 interface SearchViewProps {
   query: string;
@@ -16,29 +17,27 @@ interface SearchViewProps {
 export default function SearchView({ query, setView, initialResults }: SearchViewProps) {
   const [results, setResults] = useState<Track[]>(initialResults || []);
   const [isLoading, setIsLoading] = useState(!initialResults);
+  const debouncedQuery = useDebounce(query, 500); // 500ms debounce
 
   useEffect(() => {
+    // Only search if the debounced query is not empty.
     const fetchResults = async () => {
-      if (!query) {
+      if (!debouncedQuery) {
         setResults([]);
         setIsLoading(false);
         return;
       }
       setIsLoading(true);
-      const tracks = await searchYoutube(query);
+      const tracks = await searchYoutube(debouncedQuery);
       setResults(tracks);
       setIsLoading(false);
       // Update the view in the parent with the results, to preserve them on navigation
-      setView({ type: 'search', query, results: tracks });
+      setView({ type: 'search', query: debouncedQuery, results: tracks });
     };
 
-    // Use a timeout to avoid searching on every keystroke if the user is typing fast
-    const debounceTimer = setTimeout(() => {
-        fetchResults();
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [query, setView]);
+    fetchResults();
+  // We only want to re-run this effect when the *debounced* query changes.
+  }, [debouncedQuery, setView]);
 
   return (
     <div className="p-6 space-y-8">
@@ -48,8 +47,9 @@ export default function SearchView({ query, setView, initialResults }: SearchVie
         </h2>
       </div>
       {isLoading ? (
-        <div className="flex items-center justify-center py-10">
+        <div className="flex flex-col items-center justify-center py-10 gap-4">
           <MusicalNotesLoader size="lg" />
+          <p className="text-lg text-muted-foreground">Searching...</p>
         </div>
       ) : results.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">

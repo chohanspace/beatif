@@ -2,40 +2,71 @@
 "use client";
 
 import { useEffect, useState, useRef, type Dispatch, type SetStateAction } from 'react';
-import type { Track, View, Playlist } from '@/lib/types';
+import type { Track, View } from '@/lib/types';
 import { useApp } from '@/context/app-context';
 import { Button } from './ui/button';
-import { ChevronDown, SkipBack, SkipForward, Pause, Play } from 'lucide-react';
+import { ChevronDown, SkipBack, SkipForward, Pause, Play, Rewind, FastForward, ListPlus } from 'lucide-react';
+import { Slider } from './ui/slider';
+import { AddToPlaylistDialog } from './add-to-playlist-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface PlayerViewProps {
   track: Track;
   setView: Dispatch<SetStateAction<View>>;
 }
 
+function formatTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}
+
 export default function PlayerView({ track, setView }: PlayerViewProps) {
-  const { dispatch, playlists, currentTrack } = useApp();
+  const { dispatch, playlists, currentTrack, defaultPlaylistId } = useApp();
   const [isPlaying, setIsPlaying] = useState(true);
   const playerRef = useRef<any>(null);
   const [key, setKey] = useState(Date.now());
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // This effect ensures the view updates if the currentTrack changes from another component
     if (currentTrack && currentTrack.id !== track.id) {
       setView({ type: 'player', track: currentTrack });
     }
   }, [currentTrack, track.id, setView]);
   
   useEffect(() => {
-     // Force re-render of iframe when track changes
      setKey(Date.now());
      setIsPlaying(true);
+     setProgress(0);
+     setDuration(0);
+     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
   }, [track]);
+
+  useEffect(() => {
+    if (isPlaying && playerRef.current?.getCurrentTime) {
+      progressIntervalRef.current = setInterval(() => {
+        const currentTime = playerRef.current.getCurrentTime();
+        const videoDuration = playerRef.current.getDuration();
+        if (videoDuration > 0) {
+            setDuration(videoDuration);
+            setProgress(currentTime);
+        }
+      }, 500);
+    } else {
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    }
+
+    return () => {
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    };
+  }, [isPlaying]);
 
 
   const findNextTrack = () => {
     let nextTrack: Track | null = null;
-    // A bit of a hacky way to find the "current playlist"
-    // A better implementation would have a dedicated queue management system
     const currentPlaylist = playlists.find(p => p.tracks.some(t => t.id === track.id));
 
     if (currentPlaylist) {
@@ -45,6 +76,19 @@ export default function PlayerView({ track, setView }: PlayerViewProps) {
         }
     }
     return nextTrack;
+  }
+  
+  const findPrevTrack = () => {
+    let prevTrack: Track | null = null;
+    const currentPlaylist = playlists.find(p => p.tracks.some(t => t.id === track.id));
+
+    if (currentPlaylist) {
+        const trackIndex = currentPlaylist.tracks.findIndex(t => t.id === track.id);
+        if (trackIndex > 0) {
+            prevTrack = currentPlaylist.tracks[trackIndex - 1];
+        }
+    }
+    return prevTrack;
   }
 
   const onEnded = () => {
@@ -64,20 +108,10 @@ export default function PlayerView({ track, setView }: PlayerViewProps) {
   };
 
   const handlePrev = () => {
-    let prevTrack: Track | null = null;
-    const currentPlaylist = playlists.find(p => p.tracks.some(t => t.id === track.id));
-
-    if (currentPlaylist) {
-        const trackIndex = currentPlaylist.tracks.findIndex(t => t.id === track.id);
-        if (trackIndex > 0) {
-            prevTrack = currentPlaylist.tracks[trackIndex - 1];
-        }
-    }
-    
+    const prevTrack = findPrevTrack();
     if (prevTrack) {
       dispatch({ type: 'SET_CURRENT_TRACK', payload: prevTrack });
     } else {
-        // If it's the first track, just replay it
         playerRef.current?.seekTo(0);
         playerRef.current?.playVideo();
         setIsPlaying(true);
@@ -92,12 +126,46 @@ export default function PlayerView({ track, setView }: PlayerViewProps) {
     }
     setIsPlaying(!isPlaying);
   };
+
+  const handleSeek = (direction: 'forward' | 'backward') => {
+      if (!playerRef.current) return;
+      const currentTime = playerRef.current.getCurrentTime();
+      const newTime = direction === 'forward' ? currentTime + 10 : currentTime - 10;
+      playerRef.current.seekTo(Math.max(0, newTime), true);
+  }
+  
+  const handleSliderChange = (value: number[]) => {
+      if (!playerRef.current) return;
+      const newTime = value[0];
+      setProgress(newTime);
+      playerRef.current.seekTo(newTime, true);
+  }
   
   const handlePlayerReady = (event: any) => {
     playerRef.current = event.target;
+    const videoDuration = playerRef.current.getDuration();
+    if (videoDuration > 0) {
+        setDuration(videoDuration);
+    }
     if(isPlaying) {
         playerRef.current.playVideo();
     }
+  }
+
+  const handleAddToPlaylist = (playlistId: string) => {
+    dispatch({ type: 'ADD_TRACK_TO_PLAYLIST', payload: { playlistId, track } });
+  }
+  
+  const handleQuickAdd = () => {
+    if (defaultPlaylistId) {
+      dispatch({ type: 'ADD_TRACK_TO_PLAYLIST', payload: { playlistId: defaultPlaylistId, track } });
+      const playlist = playlists.find(p => p.id === defaultPlaylistId);
+      toast({ title: 'Track Added', description: `Added to "${playlist?.name || 'your default playlist'}".` });
+    }
+  }
+
+  const handleCreateAndAddToPlaylist = (name: string) => {
+    dispatch({ type: 'CREATE_PLAYLIST', payload: { name, tracks: [track] } });
   }
 
   return (
@@ -130,9 +198,13 @@ export default function PlayerView({ track, setView }: PlayerViewProps) {
                         events: {
                             'onReady': handlePlayerReady,
                             'onStateChange': (event: any) => {
-                                if (event.data === YT.PlayerState.ENDED) {
-                                    onEnded();
+                                if (event.data === YT.PlayerState.PLAYING) {
+                                    setIsPlaying(true);
+                                    const videoDuration = event.target.getDuration();
+                                    if(videoDuration > 0) setDuration(videoDuration);
                                 }
+                                if (event.data === YT.PlayerState.PAUSED) setIsPlaying(false);
+                                if (event.data === YT.PlayerState.ENDED) onEnded();
                             }
                         }
                     });
@@ -141,19 +213,53 @@ export default function PlayerView({ track, setView }: PlayerViewProps) {
           ></iframe>
         </div>
         
-        <div className="text-center">
-            <h1 className="text-3xl md:text-4xl font-bold font-headline">{track.title}</h1>
-            <p className="text-lg md:text-xl text-muted-foreground mt-2">{track.artist}</p>
+        <div className="w-full max-w-2xl">
+            <div className="flex items-center justify-between">
+                <div className="text-center flex-1">
+                    <h1 className="text-3xl md:text-4xl font-bold font-headline">{track.title}</h1>
+                    <p className="text-lg md:text-xl text-muted-foreground mt-2">{track.artist}</p>
+                </div>
+                <AddToPlaylistDialog
+                  onSave={handleCreateAndAddToPlaylist}
+                  onSelectPlaylist={handleAddToPlaylist}
+                  onQuickAdd={defaultPlaylistId ? handleQuickAdd : undefined}
+                  triggerButton={
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground -ml-2 flex-shrink-0">
+                        <ListPlus className="h-6 w-6" />
+                    </Button>
+                  }
+                />
+            </div>
+            
+            <div className="mt-4">
+                 <Slider 
+                    value={[progress]}
+                    max={duration}
+                    onValueChange={handleSliderChange}
+                    disabled={!duration}
+                 />
+                 <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>{formatTime(progress)}</span>
+                    <span>{formatTime(duration)}</span>
+                 </div>
+            </div>
         </div>
 
-        <div className="flex items-center justify-center gap-6">
-            <Button variant="ghost" size="icon" className="h-16 w-16" onClick={handlePrev}>
+
+        <div className="flex items-center justify-center gap-4">
+            <Button variant="ghost" size="icon" className="h-16 w-16" onClick={handlePrev} disabled={!findPrevTrack()}>
                 <SkipBack className="h-8 w-8" />
             </Button>
-             <Button variant="default" size="icon" className="h-20 w-20 rounded-full" onClick={togglePlay}>
+            <Button variant="ghost" size="icon" className="h-16 w-16" onClick={() => handleSeek('backward')} disabled={!duration}>
+                <Rewind className="h-8 w-8" />
+            </Button>
+             <Button variant="default" size="icon" className="h-20 w-20 rounded-full" onClick={togglePlay} disabled={!duration}>
                 {isPlaying ? <Pause className="h-10 w-10" /> : <Play className="h-10 w-10 fill-current" />}
             </Button>
-            <Button variant="ghost" size="icon" className="h-16 w-16" onClick={handleNext}>
+             <Button variant="ghost" size="icon" className="h-16 w-16" onClick={() => handleSeek('forward')} disabled={!duration}>
+                <FastForward className="h-8 w-8" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-16 w-16" onClick={handleNext} disabled={!findNextTrack()}>
                 <SkipForward className="h-8 w-8" />
             </Button>
         </div>
