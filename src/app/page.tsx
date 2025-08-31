@@ -18,9 +18,11 @@ import { countries } from '@/lib/countries';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { GearsLoader } from '@/components/ui/gears-loader';
+import { useSession } from 'next-auth/react';
 
 function BeatifApp() {
   const { currentTrack, loggedInUser, setLoggedInUser } = useApp();
+  const { status } = useSession();
   const [view, setView] = useState<View>({ type: 'discover' });
   const [showCountryDialog, setShowCountryDialog] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState('');
@@ -30,12 +32,12 @@ function BeatifApp() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!loggedInUser) {
+    if (status === 'unauthenticated') {
       router.push('/login');
-    } else if (loggedInUser && !loggedInUser.country) {
+    } else if (status === 'authenticated' && loggedInUser && !loggedInUser.country) {
       setShowCountryDialog(true);
     }
-  }, [loggedInUser, router]);
+  }, [loggedInUser, status, router]);
   
   useEffect(() => {
     // When currentTrack changes, if we are not in the player view, show the player bar.
@@ -67,12 +69,12 @@ function BeatifApp() {
   const filteredCountries = countries.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()));
 
 
-  if (!loggedInUser) {
+  if (status === 'loading' || !loggedInUser) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-4">
                 <GearsLoader size="lg" />
-                <p className="text-muted-foreground">Redirecting to login...</p>
+                <p className="text-muted-foreground">Authenticating...</p>
             </div>
         </div>
     );

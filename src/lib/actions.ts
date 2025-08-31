@@ -20,20 +20,36 @@ const mockTracks: Track[] = [
 ];
 
 export async function searchYoutube(query: string): Promise<Track[]> {
-  console.log(`Searching for: ${query}`);
-  // In a real app, you would fetch from the YouTube API.
-  // For now, we filter our mock data.
-  const filteredTracks = mockTracks.filter(track => 
-    track.title.toLowerCase().includes(query.toLowerCase()) ||
-    track.artist.toLowerCase().includes(query.toLowerCase())
-  );
+  console.log(`Searching YouTube for: ${query}`);
+  const apiKey = process.env.YOUTUBE_API_KEY;
 
-  if (filteredTracks.length > 0) {
-    return filteredTracks;
+  if (!apiKey || apiKey === 'YOUR_YOUTUBE_API_KEY_HERE') {
+    console.warn("YouTube API key is not configured. Falling back to mock data.");
+    return [...mockTracks].sort(() => 0.5 - Math.random()).slice(0, 5);
   }
-  
-  // If no results, return a random selection to make search feel more responsive
-  return [...mockTracks].sort(() => 0.5 - Math.random()).slice(0, 5);
+
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
+    query
+  )}&key=${apiKey}&type=video&maxResults=10`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error("YouTube API error:", response.statusText);
+      return [];
+    }
+    const data = await response.json();
+    return data.items.map((item: any): Track => ({
+      id: item.id.videoId,
+      title: item.snippet.title,
+      artist: item.snippet.channelTitle,
+      thumbnail: item.snippet.thumbnails.high.url,
+      youtubeId: item.id.videoId,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch from YouTube API:", error);
+    return [];
+  }
 }
 
 export async function getTracksForMood(mood: string, country?: string): Promise<Track[]> {

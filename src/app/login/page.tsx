@@ -17,7 +17,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import {
   Dialog,
   DialogContent,
@@ -49,7 +49,8 @@ function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const { setLoggedInUser, loggedInUser } = useApp();
+  const { setLoggedInUser } = useApp();
+  const { data: session, status } = useSession();
   const { toast } = useToast();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -66,10 +67,10 @@ export default function LoginPage() {
   }, [resendCooldown]);
 
   useEffect(() => {
-    if(loggedInUser) {
-        router.push('/');
+    if (status === 'authenticated') {
+      router.push('/');
     }
-  }, [loggedInUser, router]);
+  }, [status, router]);
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -252,5 +253,3 @@ export default function LoginPage() {
     </>
   );
 }
-
-    

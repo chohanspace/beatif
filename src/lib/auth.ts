@@ -260,7 +260,7 @@ export async function saveUser(user: User): Promise<void> {
     const usersCollection = await getUsersCollection();
     
     // Create a mutable copy of the user object to avoid modifying the original
-    const userToSave: Partial<User & { _id?: ObjectId }> = { ...user };
+    const userToSave: Partial<User & { _id?: ObjectId | string }> = { ...user };
     
     // Prevent trying to update the immutable _id field and ensure the 'id' string field isn't saved to mongo
     if (userToSave.id) {

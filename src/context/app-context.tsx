@@ -119,15 +119,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
       setLoggedInUser(session.user as User);
-    } else {
+    } else if (status === 'unauthenticated') {
       try {
         const storedUser = localStorage.getItem('loggedInUser');
         if (storedUser) {
           const user = JSON.parse(storedUser);
           setLoggedInUser(user);
+        } else {
+          setLoggedInUser(null);
         }
       } catch (error) {
         console.error("Could not load user from localStorage", error);
+        setLoggedInUser(null);
       }
     }
   }, [session, status]);
@@ -195,7 +198,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }).catch(err => console.error("Failed to save user state:", err));
       }
 
-  }, [state.playlists, state.defaultPlaylistId, state.theme, loggedInUser]);
+  }, [state.playlists, state.defaultPlaylistId, state.theme, loggedInUser, session]);
 
   // Handle theme changes
   useEffect(() => {
