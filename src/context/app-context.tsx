@@ -115,21 +115,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
   
   // Handle user state from both next-auth session and our custom JWT
   useEffect(() => {
+    // Try to load user from localStorage on initial load
+    try {
+      const storedUser = localStorage.getItem('loggedInUser');
+      if (storedUser) {
+        setLoggedInUser(JSON.parse(storedUser));
+      }
+    } catch (error) {
+      console.error("Could not load user from localStorage", error);
+      setLoggedInUser(null);
+    }
+  }, []);
+  
+  // Once the session status is determined, we can finalize the user state.
+  useEffect(() => {
     if (status === 'authenticated' && session?.user) {
+      // If a next-auth session exists, it takes precedence.
       setLoggedInUser(session.user as User);
     } else if (status === 'unauthenticated') {
-      try {
-        const storedUser = localStorage.getItem('loggedInUser');
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
-          setLoggedInUser(user);
-        } else {
-          setLoggedInUser(null);
+        // If next-auth is unauthenticated, but we have a user from our custom JWT, that's fine.
+        // If not, clear any remnants of a Google session user.
+        if (loggedInUser && !loggedInUser.password) {
+            setLoggedInUser(null);
         }
-      } catch (error) {
-        console.error("Could not load user from localStorage", error);
-        setLoggedInUser(null);
-      }
     }
   }, [session, status]);
 
