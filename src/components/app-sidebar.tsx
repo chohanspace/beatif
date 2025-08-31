@@ -32,6 +32,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { signOut, useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 
 interface AppSidebarProps {
@@ -43,6 +44,7 @@ export default function AppSidebar({ view, setView }: AppSidebarProps) {
   const { playlists, dispatch, loggedInUser, setLoggedInUser, defaultPlaylistId, theme, setTheme } = useApp();
   const { data: session } = useSession();
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleCreatePlaylist = (name: string) => {
     dispatch({ type: 'CREATE_PLAYLIST', payload: { name, tracks: [] } });
@@ -50,12 +52,16 @@ export default function AppSidebar({ view, setView }: AppSidebarProps) {
   
   const handleLogout = () => {
     if (session) {
+      // For Google users, signOut will handle redirection
       signOut({ callbackUrl: '/login' });
-    }
-    setLoggedInUser(null);
-    if(typeof window !== 'undefined') {
-        localStorage.removeItem('loggedInUser');
-        localStorage.removeItem('jwt');
+    } else {
+      // For email/password users, manually clear state and redirect
+      if(typeof window !== 'undefined') {
+          localStorage.removeItem('loggedInUser');
+          localStorage.removeItem('jwt');
+      }
+      setLoggedInUser(null);
+      router.push('/login');
     }
   }
 
