@@ -180,7 +180,7 @@ export default function PlayerView({ track, setView }: PlayerViewProps) {
         <div className="w-10"></div>
       </header>
       
-      <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 gap-8">
+      <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 gap-4 md:gap-8">
         <div className="w-full max-w-2xl aspect-video rounded-xl shadow-2xl overflow-hidden bg-black">
           <iframe
             key={key}
@@ -216,8 +216,8 @@ export default function PlayerView({ track, setView }: PlayerViewProps) {
         <div className="w-full max-w-2xl">
             <div className="flex items-center justify-between">
                 <div className="text-center flex-1">
-                    <h1 className="text-3xl md:text-4xl font-bold font-headline">{track.title}</h1>
-                    <p className="text-lg md:text-xl text-muted-foreground mt-2">{track.artist}</p>
+                    <h1 className="text-2xl md:text-4xl font-bold font-headline truncate">{track.title}</h1>
+                    <p className="text-base md:text-xl text-muted-foreground mt-2">{track.artist}</p>
                 </div>
                 <AddToPlaylistDialog
                   onSave={handleCreateAndAddToPlaylist}
@@ -246,24 +246,26 @@ export default function PlayerView({ track, setView }: PlayerViewProps) {
         </div>
 
 
-        <div className="flex items-center justify-center gap-4">
-            <Button variant="ghost" size="icon" className="h-16 w-16" onClick={handlePrev} disabled={!findPrevTrack()}>
-                <SkipBack className="h-8 w-8" />
+        <div className="flex items-center justify-center w-full max-w-md gap-2 md:gap-4">
+            <Button variant="ghost" size="icon" className="h-12 w-12 md:h-16 md:w-16" onClick={handlePrev} disabled={!findPrevTrack()}>
+                <SkipBack className="h-6 w-6 md:h-8 md:w-8" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-16 w-16" onClick={() => handleSeek('backward')} disabled={!duration}>
-                <Rewind className="h-8 w-8" />
+            <Button variant="ghost" size="icon" className="h-12 w-12 md:h-16 md:w-16" onClick={() => handleSeek('backward')} disabled={!duration}>
+                <Rewind className="h-6 w-6 md:h-8 md:w-8" />
             </Button>
-             <Button variant="default" size="icon" className="h-20 w-20 rounded-full" onClick={togglePlay} disabled={!duration}>
-                {isPlaying ? <Pause className="h-10 w-10" /> : <Play className="h-10 w-10 fill-current" />}
+             <Button variant="default" size="icon" className="h-16 w-16 md:h-20 md:w-20 rounded-full" onClick={togglePlay} disabled={!duration}>
+                {isPlaying ? <Pause className="h-8 w-8 md:h-10 md:w-10 fill-current" /> : <Play className="h-8 w-8 md:h-10 md:w-10 fill-current" />}
             </Button>
-             <Button variant="ghost" size="icon" className="h-16 w-16" onClick={() => handleSeek('forward')} disabled={!duration}>
-                <FastForward className="h-8 w-8" />
+             <Button variant="ghost" size="icon" className="h-12 w-12 md:h-16 md:w-16" onClick={() => handleSeek('forward')} disabled={!duration}>
+                <FastForward className="h-6 w-6 md:h-8 md:w-8" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-16 w-16" onClick={handleNext} disabled={!findNextTrack()}>
-                <SkipForward className="h-8 w-8" />
+            <Button variant="ghost" size="icon" className="h-12 w-12 md:h-16 md:w-16" onClick={handleNext} disabled={!findNextTrack()}>
+                <SkipForward className="h-6 w-6 md:h-8 md:w-8" />
             </Button>
         </div>
       </main>
     </div>
   );
 }
+
+    
