@@ -28,18 +28,7 @@ interface AppContextType extends AppState {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// A helper function to save the user state to the database
-async function saveUserState(user: User | null, newPlaylists: Playlist[], newDefaultPlaylistId: string | null) {
-  if (!user) return;
-  const updatedUser = { ...user, playlists: newPlaylists, defaultPlaylistId: newDefaultPlaylistId };
-  await saveUser(updatedUser);
-  // We return the updated user object to sync the client state
-  return updatedUser;
-}
-
-
-function appReducer(state: AppState, action: AppAction, user: User | null, setUser: (u: User) => void): AppState {
-  let updatedPlaylists: Playlist[];
+function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_CURRENT_TRACK':
       return { ...state, currentTrack: action.payload };
@@ -50,40 +39,42 @@ function appReducer(state: AppState, action: AppAction, user: User | null, setUs
         name: action.payload.name,
         tracks: action.payload.tracks,
       };
-      updatedPlaylists = [...state.playlists, newPlaylist];
-      saveUserState(user, updatedPlaylists, state.defaultPlaylistId).then(updatedUser => updatedUser && setUser(updatedUser));
-      return { ...state, playlists: updatedPlaylists };
+      return { ...state, playlists: [...state.playlists, newPlaylist] };
     }
 
     case 'ADD_TRACK_TO_PLAYLIST': {
-      updatedPlaylists = state.playlists.map((p) => {
-        if (p.id === action.payload.playlistId) {
-          if (p.tracks.some(t => t.id === action.payload.track.id)) {
-            return p;
+      return {
+        ...state,
+        playlists: state.playlists.map((p) => {
+          if (p.id === action.payload.playlistId) {
+            // Avoid adding duplicate tracks
+            if (p.tracks.some(t => t.id === action.payload.track.id)) {
+              return p;
+            }
+            return { ...p, tracks: [...p.tracks, action.payload.track] };
           }
-          return { ...p, tracks: [...p.tracks, action.payload.track] };
-        }
-        return p;
-      });
-      saveUserState(user, updatedPlaylists, state.defaultPlaylistId).then(updatedUser => updatedUser && setUser(updatedUser));
-      return { ...state, playlists: updatedPlaylists };
+          return p;
+        }),
+      };
     }
     
     case 'RENAME_PLAYLIST':
-      updatedPlaylists = state.playlists.map(p => 
-        p.id === action.payload.id ? { ...p, name: action.payload.newName } : p
-      );
-      saveUserState(user, updatedPlaylists, state.defaultPlaylistId).then(updatedUser => updatedUser && setUser(updatedUser));
-      return { ...state, playlists: updatedPlaylists };
+      return {
+        ...state,
+        playlists: state.playlists.map(p => 
+          p.id === action.payload.id ? { ...p, name: action.payload.newName } : p
+        ),
+      };
 
     case 'DELETE_PLAYLIST':
-      updatedPlaylists = state.playlists.filter(p => p.id !== action.payload.id);
       const newDefaultId = state.defaultPlaylistId === action.payload.id ? null : state.defaultPlaylistId;
-      saveUserState(user, updatedPlaylists, newDefaultId).then(updatedUser => updatedUser && setUser(updatedUser));
-      return { ...state, playlists: updatedPlaylists, defaultPlaylistId: newDefaultId };
+      return {
+        ...state,
+        playlists: state.playlists.filter(p => p.id !== action.payload.id),
+        defaultPlaylistId: newDefaultId,
+      };
 
     case 'SET_DEFAULT_PLAYLIST':
-      saveUserState(user, state.playlists, action.payload.id).then(updatedUser => updatedUser && setUser(updatedUser));
       return { ...state, defaultPlaylistId: action.payload.id };
 
     case 'SET_USER_DATA':
@@ -99,14 +90,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
 
   const initialState: AppState = {
-    playlists: loggedInUser?.playlists || [],
+    playlists: [],
     currentTrack: null,
-    defaultPlaylistId: loggedInUser?.defaultPlaylistId || null,
+    defaultPlaylistId: null,
   };
   
-  const [state, dispatch] = useReducer((state: AppState, action: AppAction) => appReducer(state, action, loggedInUser, setLoggedInUser), initialState);
+  const [state, dispatch] = useReducer(appReducer, initialState);
+  
+  // Load user from local storage on initial app load
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem('loggedInUser');
+      if(storedUser) {
+        const user = JSON.parse(storedUser);
+        setLoggedInUser(user);
+      }
+    } catch (error) {
+      console.error("Could not load user from localStorage", error);
+    }
+  }, []);
 
-  // When the user logs in or out, sync their data to the context state
+  // When the user logs in or out, sync their data from the user object to the context state
   useEffect(() => {
     if (loggedInUser) {
         dispatch({
@@ -127,20 +131,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [loggedInUser]);
 
-  // Load user from local storage on initial app load
+  // When the client-side state changes, save it to the database
   useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem('loggedInUser');
-      if(storedUser) {
-        const user = JSON.parse(storedUser);
-        setLoggedInUser(user);
-      }
-    } catch (error) {
-      console.error("Could not load user from localStorage", error);
-    }
-  }, []);
+      if (!loggedInUser || !loggedInUser.id) return;
+      
+      const hasStateChanged = JSON.stringify(loggedInUser.playlists || []) !== JSON.stringify(state.playlists) ||
+                              loggedInUser.defaultPlaylistId !== state.defaultPlaylistId;
 
-  return <AppContext.Provider value={{ ...state, dispatch, loggedInUser, setLoggedInUser }}>{children}</AppContext.Provider>;
+      if(hasStateChanged) {
+        const updatedUser: User = { 
+            ...loggedInUser, 
+            playlists: state.playlists, 
+            defaultPlaylistId: state.defaultPlaylistId 
+        };
+        saveUser(updatedUser).then(() => {
+            // Also update the state in the provider and local storage
+            setLoggedInUser(updatedUser);
+            if(typeof window !== "undefined") {
+              localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
+            }
+        }).catch(err => console.error("Failed to save user state:", err));
+      }
+
+  }, [state.playlists, state.defaultPlaylistId, loggedInUser]);
+
+  const setAndStoreUser = (user: User | null) => {
+    setLoggedInUser(user);
+    if(typeof window !== "undefined") {
+      if (user) {
+        localStorage.setItem('loggedInUser', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('loggedInUser');
+      }
+    }
+  }
+
+
+  return <AppContext.Provider value={{ ...state, dispatch, loggedInUser, setLoggedInUser: setAndStoreUser }}>{children}</AppContext.Provider>;
 }
 
 export function useApp() {
