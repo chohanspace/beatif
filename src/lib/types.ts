@@ -24,6 +24,7 @@ export interface User {
   country?: string;
   playlists?: Playlist[];
   defaultPlaylistId?: string | null;
+  favoriteSingers?: string[];
 }
 
 export type View =
@@ -38,4 +39,5 @@ export type View =
 
 export type GenreBasedRecommendationsInput = {
     listeningHistory: string;
+    favoriteSingers?: string[];
 }

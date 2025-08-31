@@ -65,6 +65,7 @@ export async function signUp(email: string, password: string): Promise<{ success
       otpExpires,
       playlists: [],
       defaultPlaylistId: null,
+      favoriteSingers: [],
     };
     
     await users.insertOne(userToSave);
@@ -124,7 +125,6 @@ export async function login(email: string, password: string): Promise<{ success:
     }
 
     const { password: _password, otp: _otp, otpExpires: _otpExpires, _id, ...userToReturn } = userDoc;
-    // Ensure id is a string
     const userPayload = { ...userToReturn, id: _id.toString() };
 
     const token = generateToken(userPayload);
@@ -230,6 +230,7 @@ export async function createUserAsAdmin(email: string, password: string): Promis
       isVerified: true, // Automatically verify admin-created users
       playlists: [],
       defaultPlaylistId: null,
+      favoriteSingers: [],
     };
 
     await users.insertOne(newUser);
@@ -255,7 +256,6 @@ export async function getAllUsers(): Promise<User[]> {
 
 export async function saveUser(user: User): Promise<void> {
     const usersCollection = await getUsersCollection();
-    // Prevent trying to update the immutable _id field and ensure the 'id' string field isn't saved to mongo
     const { id, ...userToSave } = user;
     await usersCollection.updateOne({ email: user.email }, { $set: userToSave }, { upsert: true });
 }

@@ -23,7 +23,8 @@ import { useRouter } from 'next/navigation';
 export default function SettingsPage() {
   const { loggedInUser, setLoggedInUser } = useApp();
   const router = useRouter();
-  const [selectedCountry, setSelectedCountry] = useState(loggedInUser?.country || '');
+  const [selectedCountry, setSelectedCountry] = useState('');
+  const [favoriteSingers, setFavoriteSingers] = useState('');
   const [countrySearch, setCountrySearch] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [listeningHistory, setListeningHistory] = useState('');
@@ -36,6 +37,7 @@ export default function SettingsPage() {
       router.push('/login');
     } else {
         setSelectedCountry(loggedInUser.country || '');
+        setFavoriteSingers((loggedInUser.favoriteSingers || []).join(', '));
     }
   }, [loggedInUser, router]);
 
@@ -49,13 +51,30 @@ export default function SettingsPage() {
     setIsSaving(false);
   };
   
+  const handleArtistsSave = async () => {
+    if (!loggedInUser) return;
+    setIsSaving(true);
+    const singersArray = favoriteSingers.split(',').map(s => s.trim()).filter(Boolean);
+    const updatedUser: User = { ...loggedInUser, favoriteSingers: singersArray };
+    await saveUser(updatedUser);
+    setLoggedInUser(updatedUser);
+    toast({ title: 'Favorite Artists Updated', description: 'Your preferences have been saved.' });
+    setIsSaving(false);
+  };
+
   const handleGetRecommendations = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!listeningHistory.trim()) return;
+    if (!listeningHistory.trim() && !favoriteSingers.trim()) {
+        toast({ variant: 'destructive', title: 'Input Required', description: 'Please provide some listening history or favorite artists.' });
+        return;
+    }
 
     setIsGenerating(true);
     setRecommendations('');
-    const result = await getGenreRecommendations({ listeningHistory });
+    const result = await getGenreRecommendations({ 
+        listeningHistory,
+        favoriteSingers: loggedInUser?.favoriteSingers
+    });
     setRecommendations(result);
     setIsGenerating(false);
   };
@@ -75,38 +94,52 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Location</CardTitle>
+          <CardTitle>Profile</CardTitle>
           <CardDescription>
-            Changing your country will update the trending music on your Discover page.
+            Update your location and favorite artists to get better recommendations.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
             <div className="space-y-2">
-                <Label htmlFor="country-search">Search Country</Label>
-                <Input
-                    id="country-search"
-                    placeholder="Find your country..."
-                    value={countrySearch}
-                    onChange={e => setCountrySearch(e.target.value)}
-                />
-            </div>
-            <div className="space-y-2">
-                 <Label>Select Country</Label>
+                <Label>Select Country</Label>
                 <Select onValueChange={setSelectedCountry} value={selectedCountry}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select a country" />
                     </SelectTrigger>
                     <SelectContent>
+                        <Input
+                            id="country-search"
+                            placeholder="Find your country..."
+                            value={countrySearch}
+                            onChange={e => setCountrySearch(e.target.value)}
+                            className="m-2 w-[calc(100%-1rem)]"
+                        />
                         <ScrollArea className="h-64">
                             {filteredCountries.map(c => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}
                         </ScrollArea>
                     </SelectContent>
                 </Select>
+                 <Button onClick={handleCountrySave} disabled={isSaving || selectedCountry === loggedInUser.country}>
+                    {isSaving ? <GearsLoader size="sm" className="mr-2" /> : null}
+                    Save Country
+                </Button>
             </div>
-          <Button onClick={handleCountrySave} disabled={isSaving || selectedCountry === loggedInUser.country}>
-            {isSaving ? <GearsLoader size="sm" className="mr-2" /> : null}
-            {isSaving ? 'Saving...' : 'Save Country'}
-          </Button>
+            <div className="space-y-2">
+                <Label htmlFor="favorite-artists">Favorite Artists</Label>
+                <Textarea
+                    id="favorite-artists"
+                    placeholder="e.g., Daft Punk, Taylor Swift, Kendrick Lamar"
+                    value={favoriteSingers}
+                    onChange={(e) => setFavoriteSingers(e.target.value)}
+                    rows={2}
+                    className="text-base"
+                />
+                <p className="text-xs text-muted-foreground">Separate artist names with a comma.</p>
+                 <Button onClick={handleArtistsSave} disabled={isSaving}>
+                    {isSaving ? <GearsLoader size="sm" className="mr-2" /> : null}
+                    Save Artists
+                </Button>
+            </div>
         </CardContent>
       </Card>
       
@@ -114,7 +147,7 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Personalize Recommendations</CardTitle>
           <CardDescription>
-            Tell us what you like so we can find music you'll love. The more detail, the better!
+            Get recommendations based on your listening history and favorite artists. The more detail, the better!
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -126,7 +159,7 @@ export default function SettingsPage() {
               rows={5}
               className="text-base"
             />
-            <Button type="submit" disabled={isGenerating || !listeningHistory.trim()}>
+            <Button type="submit" disabled={isGenerating || (!listeningHistory.trim() && !favoriteSingers.trim())}>
               {isGenerating ? (
                 <>
                   <GearsLoader className="mr-2" size="sm" />
