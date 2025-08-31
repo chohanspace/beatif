@@ -208,19 +208,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Handle user state from both next-auth session and our custom JWT
   useEffect(() => {
+    // This effect runs on initial mount to load user from localStorage
     try {
       const storedUser = localStorage.getItem('loggedInUser');
       if (storedUser) {
         const user = JSON.parse(storedUser);
         setLoggedInUser(user);
-        dispatch({
-          type: 'SET_USER_DATA',
-          payload: {
-            playlists: user.playlists || [],
-            defaultPlaylistId: user.defaultPlaylistId || null,
-            theme: user.theme || 'dark'
-          }
-        });
       }
     } catch (error) {
       console.error("Could not load user from localStorage", error);
@@ -228,17 +221,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
   
-  // Once the session status is determined, we can finalize the user state.
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
-      // If a next-auth session exists, it takes precedence.
       setLoggedInUser(session.user as User);
-    } else if (status === 'unauthenticated') {
-        // If next-auth is unauthenticated, but we have a user from our custom JWT, that's fine.
-        // If not, clear any remnants of a Google session user.
-        if (loggedInUser && !loggedInUser.password) {
-            setLoggedInUser(null);
-        }
     }
   }, [session, status]);
 
@@ -250,7 +235,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (storedTheme) {
         dispatch({ type: 'SET_THEME', payload: storedTheme });
       } else {
-        // If no theme in local storage, check system preference
         const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         dispatch({ type: 'SET_THEME', payload: prefersDark ? 'dark' : 'light' });
       }
@@ -325,6 +309,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if(typeof window !== "undefined") {
       if (user) {
         localStorage.setItem('loggedInUser', JSON.stringify(user));
+        // For email/pass logins, also store the JWT if it's generated
+        if ('token' in user && (user as any).token) {
+            localStorage.setItem('jwt', (user as any).token);
+        }
       } else {
         localStorage.removeItem('loggedInUser');
         localStorage.removeItem('jwt');

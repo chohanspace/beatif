@@ -39,14 +39,18 @@ function BeatifApp() {
   useEffect(() => {
     // Logic to move the iframe to the player view when it's active
     const playerContainer = document.getElementById('player-container');
+    const globalPlayerContainer = document.getElementById('global-player-container');
+
     if (view.type === 'player' && playerRef?.current) {
         if (playerContainer) {
             playerContainer.appendChild(playerRef.current);
         }
-    } else if (playerRef?.current?.parentElement !== document.body) {
-        document.body.appendChild(playerRef.current);
+    } else if (globalPlayerContainer && playerRef?.current && playerRef.current.parentElement !== globalPlayerContainer) {
+        // When not in player view, ensure the player is back in its hidden global container
+        globalPlayerContainer.appendChild(playerRef.current);
     }
   }, [view.type, playerRef]);
+
 
   const handleSaveCountry = async () => {
     if (!selectedCountry || !loggedInUser) return;
@@ -131,20 +135,29 @@ function BeatifApp() {
 
 export default function Home() {
   const { status: sessionStatus } = useSession();
-  const { loggedInUser } = useApp(); // Custom JWT auth state
+  const { loggedInUser, setLoggedInUser } = useApp(); // Custom JWT auth state
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // We are no longer loading when session status is determined AND our custom context has loaded the user.
-    const isLoading = sessionStatus === 'loading' && !loggedInUser;
-    
-    if (!isLoading) {
-      // User is authenticated if next-auth says so OR if our custom JWT user exists.
-      const auth = sessionStatus === 'authenticated' || !!loggedInUser;
-      setIsAuthenticated(auth);
-    }
-  }, [sessionStatus, loggedInUser]);
+      const storedUserStr = typeof window !== 'undefined' ? localStorage.getItem('loggedInUser') : null;
+      if (storedUserStr) {
+        try {
+          const user = JSON.parse(storedUserStr);
+          if (user && !loggedInUser) {
+            setLoggedInUser(user);
+          }
+        } catch (e) {
+          console.error("Failed to parse user from local storage", e);
+        }
+      }
+
+      // Authentication check is now more robust
+      if (sessionStatus !== 'loading') {
+          const authStatus = sessionStatus === 'authenticated' || !!loggedInUser;
+          setIsAuthenticated(authStatus);
+      }
+  }, [sessionStatus, loggedInUser, setLoggedInUser]);
 
   useEffect(() => {
     // Only redirect when authentication status has been definitively determined.
