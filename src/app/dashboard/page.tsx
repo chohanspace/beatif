@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MusicalNotesLoader } from '@/components/ui/gears-loader';
 import { useSession } from 'next-auth/react';
-import PlayerView from '@/components/player-view';
+import PlayerViewWrapper from '@/components/player-view-wrapper';
 
 function BeatifApp() {
   const { currentTrack, loggedInUser, setLoggedInUser, playerRef } = useApp();
@@ -36,28 +36,13 @@ function BeatifApp() {
     }
   }, [loggedInUser]);
   
-  useEffect(() => {
-    const playerContainer = document.getElementById('player-container');
-    const globalPlayerContainer = document.getElementById('global-player-container');
-    const playerIframe = playerRef?.current?.firstChild;
-
-    if (playerIframe) {
-      if (view.type === 'player' && playerContainer && playerIframe.parentElement !== playerContainer) {
-        playerContainer.appendChild(playerIframe);
-      } else if (view.type !== 'player' && globalPlayerContainer && playerIframe.parentElement !== globalPlayerContainer) {
-        globalPlayerContainer.appendChild(playerIframe);
-      }
-    }
-  }, [view.type, playerRef]);
-
-
   const handleSaveCountry = async () => {
     if (!selectedCountry || !loggedInUser) return;
     setIsSavingCountry(true);
     const updatedUser: User = { ...loggedInUser, country: selectedCountry };
     try {
         await saveUser(updatedUser);
-        setLoggedInUser(updatedUser); // This will also update localStorage via the context
+        setLoggedInUser(updatedUser);
         toast({ title: "Preferences Saved", description: "Your country has been set." });
         setShowCountryDialog(false);
     } catch (error) {
@@ -70,9 +55,8 @@ function BeatifApp() {
   
   const filteredCountries = countries.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()));
   
-  // Conditionally render PlayerView to avoid issues with SSR for the dialog
   if (view.type === 'player') {
-    return <PlayerView setView={setView} />;
+    return <PlayerViewWrapper setView={setView} />;
   }
 
   return (
@@ -88,7 +72,6 @@ function BeatifApp() {
     </SidebarProvider>
 
     <Dialog open={showCountryDialog} onOpenChange={(isOpen) => {
-        // Prevent closing the dialog by clicking outside or pressing Escape
         if (!isOpen && !loggedInUser?.country) {
             toast({ variant: 'destructive', title: "Selection Required", description: "Please select your country to continue." });
         } else {
@@ -139,11 +122,6 @@ export default function DashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // This effect now correctly handles the initial auth check.
-    // It waits for the session status to be determined AND checks for the presence of a user
-    // loaded from localStorage by the AppContext.
-    
-    // First, attempt to load user from localStorage if not already present in context.
     const storedUserStr = typeof window !== 'undefined' ? localStorage.getItem('loggedInUser') : null;
     if (storedUserStr && !loggedInUser) {
       try {
@@ -154,23 +132,18 @@ export default function DashboardPage() {
       }
     }
     
-    // Once session status is no longer loading, determine the final auth state.
     if (sessionStatus !== 'loading') {
-      const authStatus = sessionStatus === 'authenticated' || !!loggedInUser;
+      const authStatus = sessionStatus === 'authenticated' || !!storedUserStr;
       setIsAuthenticated(authStatus);
     }
   }, [sessionStatus, loggedInUser, setLoggedInUser]);
 
   useEffect(() => {
-    // This effect handles the redirect based on the final, determined auth state.
-    // It only runs when `isAuthenticated` changes from its initial `null` state.
     if (isAuthenticated === false) {
       router.push('/');
     }
   }, [isAuthenticated, router]);
 
-  // While we determine the auth state (isAuthenticated is null), show a loader.
-  // This prevents the flicker and premature redirect.
   if (isAuthenticated === null) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -182,12 +155,9 @@ export default function DashboardPage() {
     );
   }
 
-  // If authenticated, show the app.
   if (isAuthenticated) {
     return <BeatifApp />;
   }
 
-  // If not authenticated, the redirect has already been triggered.
-  // Return null to avoid rendering anything while the browser navigates.
   return null;
 }

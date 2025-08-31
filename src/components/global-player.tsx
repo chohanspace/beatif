@@ -36,7 +36,7 @@ export function GlobalPlayer() {
           onStateChange: (event: any) => {
             const YT = (window as any).YT;
             if (event.data === YT.PlayerState.PLAYING) {
-              dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true, duration: ytPlayer?.getDuration() || 0 }});
+              dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true, duration: event.target.getDuration() || 0 }});
             } else if (event.data === YT.PlayerState.PAUSED) {
               dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false }});
             } else if (event.data === YT.PlayerState.ENDED) {
@@ -64,17 +64,16 @@ export function GlobalPlayer() {
             ytPlayer.loadVideoById(currentTrack.youtubeId);
         }
         dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true } });
+
+        progressInterval = setInterval(() => {
+            const progress = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
+            const duration = ytPlayer.getDuration ? ytPlayer.getDuration() : 0;
+            dispatch({ type: 'SET_PLAYER_STATE', payload: { progress, duration } });
+        }, 500);
+
     } else if (ytPlayer && !currentTrack) {
         ytPlayer.stopVideo();
         dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false } });
-    }
-    
-    if (ytPlayer) {
-      progressInterval = setInterval(() => {
-        const progress = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
-        const duration = ytPlayer.getDuration ? ytPlayer.getDuration() : 0;
-        dispatch({ type: 'SET_PLAYER_STATE', payload: { progress, duration } });
-      }, 500);
     }
     
     return () => {
