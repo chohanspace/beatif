@@ -13,7 +13,7 @@ export function GlobalPlayer() {
       const player = new (window as any).YT.Player('yt-player-iframe', {
         height: '100%',
         width: '100%',
-        videoId: currentTrack?.youtubeId,
+        // videoId is removed from initialization to prevent crash
         playerVars: {
           autoplay: 1,
           controls: 0,
