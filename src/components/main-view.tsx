@@ -5,10 +5,9 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { View } from '@/lib/types';
 import AppHeader from './app-header';
 import DiscoverView from './discover-view';
-import RecommendationsView from './recommendations-view';
 import PlaylistView from './playlist-view';
 import SearchView from './search-view';
-import TrendingView from './trending-view';
+import SettingsPage from '@/app/settings/page';
 import LoginPage from '@/app/login/page';
 import SignupPage from '@/app/signup/page';
 import ForgotPasswordPage from '@/app/forgot-password/page';
@@ -24,25 +23,30 @@ interface MainViewProps {
 export default function MainView({ view, setView }: MainViewProps) {
     const { loggedInUser } = useApp();
 
-    if (!loggedInUser) {
-        if (view.type === 'signup') {
-            return <SignupPage />;
+    const renderContent = () => {
+        if (!loggedInUser) {
+            switch (view.type) {
+                case 'signup': return <SignupPage />;
+                case 'forgot-password': return <ForgotPasswordPage />;
+                default: return <LoginPage />;
+            }
         }
-        if (view.type === 'forgot-password') {
-            return <ForgotPasswordPage />;
+    
+        switch (view.type) {
+            case 'discover': return <DiscoverView setView={setView} />;
+            case 'playlist': return <PlaylistView playlistId={view.playlistId} />;
+            case 'search': return <SearchView query={view.query} setView={setView} initialResults={view.results} />;
+            case 'settings': return <SettingsPage />;
+            default: return <DiscoverView setView={setView} />;
         }
-        return <LoginPage />;
     }
+
 
     return (
     <SidebarInset className="flex-1 flex flex-col">
       <AppHeader view={view} setView={setView} />
       <div className="flex-1 p-6 overflow-y-auto">
-        {view.type === 'discover' && <DiscoverView setView={setView} initialResults={view.results} />}
-        {view.type === 'recommendations' && <RecommendationsView />}
-        {view.type === 'playlist' && <PlaylistView playlistId={view.playlistId} />}
-        {view.type === 'search' && <SearchView query={view.query} setView={setView} initialResults={view.results} />}
-        {view.type === 'trending' && <TrendingView />}
+        {renderContent()}
       </div>
     </SidebarInset>
   );

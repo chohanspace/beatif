@@ -2,85 +2,69 @@
 "use client";
 
 import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
-import { getTracksForMood } from '@/lib/actions';
 import type { Track, View } from '@/lib/types';
 import TrackCard from './track-card';
-import { Button } from './ui/button';
 import { GearsLoader } from './ui/gears-loader';
 import { useApp } from '@/context/app-context';
 
-const moods = ['Happy', 'Relaxed', 'Energetic', 'Melancholy', 'Romantic'];
-
 interface DiscoverViewProps {
   setView: Dispatch<SetStateAction<View>>;
-  initialResults?: Track[];
 }
 
-export default function DiscoverView({ setView, initialResults }: DiscoverViewProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedMood, setSelectedMood] = useState<string | null>(null);
-  const [moodResults, setMoodResults] = useState<Track[]>(initialResults || []);
+export default function DiscoverView({ setView }: DiscoverViewProps) {
+  const [trendingTracks, setTrendingTracks] = useState<Track[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { loggedInUser } = useApp();
 
-  const handleMoodSelect = async (mood: string) => {
-    setIsLoading(true);
-    setSelectedMood(mood);
-    setMoodResults([]);
-    const tracks = await getTracksForMood(mood, loggedInUser?.country);
-    setMoodResults(tracks);
-    setIsLoading(false);
-  };
-  
   useEffect(() => {
-    if(initialResults) {
-        setMoodResults(initialResults);
+    if (!loggedInUser?.country) {
+      setIsLoading(false);
+      return;
     }
-  }, [initialResults])
+
+    const fetchTrendingTracks = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/trending/${encodeURIComponent(loggedInUser.country!)}`);
+        const data: Track[] = await response.json();
+        setTrendingTracks(data);
+      } catch (error) {
+        console.error("Failed to fetch trending tracks:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTrendingTracks();
+  }, [loggedInUser?.country]);
 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold font-headline mb-4">Discover</h2>
+        <h2 className="text-3xl font-bold font-headline mb-1">
+          Trending in {loggedInUser?.country || 'your area'}
+        </h2>
         <p className="text-muted-foreground text-lg">
-          {loggedInUser?.country 
-            ? `Select a mood to get a personalized playlist for ${loggedInUser.country}.`
-            : 'Select a mood to get a personalized playlist generated just for you.'
-          }
+          Popular tracks and artists based on your location.
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-4">
-        {moods.map((mood) => (
-          <Button
-            key={mood}
-            variant={selectedMood === mood ? 'default' : 'secondary'}
-            size="lg"
-            onClick={() => handleMoodSelect(mood)}
-            disabled={isLoading}
-          >
-            {mood}
-          </Button>
-        ))}
-      </div>
-
-      <div>
-        {isLoading && (
-          <div className="flex flex-col items-center justify-center py-10 gap-4">
-            <GearsLoader size="lg" />
-            <p className="text-lg text-muted-foreground">Brewing your {selectedMood} mix...</p>
-          </div>
-        )}
-        {moodResults.length > 0 && (
-          <>
-            <h3 className="text-2xl font-bold font-headline mb-4">{selectedMood} Vibes</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {moodResults.map((track) => (
-                <TrackCard key={track.id} track={track} />
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-10 gap-4">
+          <GearsLoader size="lg" />
+          <p className="text-lg text-muted-foreground">Finding the hottest tracks...</p>
+        </div>
+      ) : trendingTracks.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {trendingTracks.map((track) => (
+            <TrackCard key={track.id} track={track} />
+          ))}
+        </div>
+      ) : (
+        <p className="text-center text-muted-foreground py-10">
+          Could not load trending tracks for {loggedInUser?.country}. Please try again later.
+        </p>
+      )}
     </div>
   );
 }

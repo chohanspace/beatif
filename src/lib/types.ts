@@ -1,5 +1,4 @@
 
-
 export interface Track {
   id: string;
   title: string;
@@ -27,10 +26,9 @@ export interface User {
 
 export type View =
   | { type: 'discover'; results?: Track[] }
-  | { type: 'recommendations' }
   | { type: 'playlist'; playlistId: string }
   | { type: 'search'; query: string; results?: Track[] }
-  | { type: 'trending' }
+  | { type: 'settings' }
   | { type: 'login' }
   | { type: 'signup' }
   | { type: 'forgot-password' };

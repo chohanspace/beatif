@@ -2,7 +2,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from 'react';
-import { Home, Music, ListMusic, Plus, Bot, Library, LogOut, TrendingUp } from 'lucide-react';
+import { Home, Music, ListMusic, Plus, Library, LogOut, Settings } from 'lucide-react';
 import { useApp } from '@/context/app-context';
 import type { View } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from './ui/sidebar';
+import { useRouter } from 'next/navigation';
 
 interface AppSidebarProps {
   view: View;
@@ -27,6 +28,7 @@ interface AppSidebarProps {
 
 export default function AppSidebar({ view, setView }: AppSidebarProps) {
   const { playlists, dispatch, loggedInUser, setLoggedInUser } = useApp();
+  const router = useRouter();
 
   const handleCreatePlaylist = (name: string) => {
     dispatch({ type: 'CREATE_PLAYLIST', payload: { name, tracks: [] } });
@@ -39,6 +41,10 @@ export default function AppSidebar({ view, setView }: AppSidebarProps) {
         localStorage.removeItem('jwt');
     }
   }
+
+  const handleNavigateToSettings = () => {
+    setView({ type: 'settings' });
+  };
   
   if (!loggedInUser) return null;
 
@@ -67,6 +73,11 @@ export default function AppSidebar({ view, setView }: AppSidebarProps) {
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
+                         <DropdownMenuItem onClick={handleNavigateToSettings}>
+                            <Settings className="mr-2 h-4 w-4" />
+                            <span>Settings</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleLogout}>
                             <LogOut className="mr-2 h-4 w-4" />
                             <span>Log out</span>
@@ -86,26 +97,6 @@ export default function AppSidebar({ view, setView }: AppSidebarProps) {
                     >
                          <Home />
                         <span>Discover</span>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-                 <SidebarMenuItem>
-                    <SidebarMenuButton
-                        onClick={() => setView({ type: 'trending' })}
-                        isActive={view.type === 'trending'}
-                        tooltip="Trending"
-                    >
-                         <TrendingUp />
-                        <span>Trending</span>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                    <SidebarMenuButton
-                        onClick={() => setView({ type: 'recommendations' })}
-                        isActive={view.type === 'recommendations'}
-                        tooltip="For You"
-                    >
-                        <Bot />
-                        <span>For You</span>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>

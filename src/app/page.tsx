@@ -15,12 +15,15 @@ import { Button } from '@/components/ui/button';
 import { saveUser } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
 import { countries } from '@/lib/countries';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 function BeatifApp() {
   const { currentTrack, loggedInUser, setLoggedInUser } = useApp();
   const [view, setView] = useState<View>({ type: 'discover' });
   const [showCountryDialog, setShowCountryDialog] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState('');
+  const [countrySearch, setCountrySearch] = useState('');
   const [isSavingCountry, setIsSavingCountry] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -46,6 +49,9 @@ function BeatifApp() {
     setShowCountryDialog(false);
     setIsSavingCountry(false);
   };
+  
+  const filteredCountries = countries.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()));
+
 
   if (!loggedInUser) {
     return (
@@ -80,13 +86,20 @@ function BeatifApp() {
                     To give you the best recommendations, please select your country.
                 </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
+            <div className="py-4 space-y-4">
+                <Input 
+                    placeholder="Search for a country..."
+                    value={countrySearch}
+                    onChange={e => setCountrySearch(e.target.value)}
+                />
                <Select onValueChange={setSelectedCountry} value={selectedCountry}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a country" />
                   </SelectTrigger>
                   <SelectContent>
-                    {countries.map(c => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}
+                    <ScrollArea className="h-64">
+                      {filteredCountries.map(c => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}
+                    </ScrollArea>
                   </SelectContent>
                 </Select>
             </div>
