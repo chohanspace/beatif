@@ -75,7 +75,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         playlists: state.playlists.map((p) => {
           if (p.id === action.payload.playlistId) {
-            // Avoid adding duplicate tracks
             if (p.tracks.some(t => t.id === action.payload.track.id)) {
               return p;
             }
@@ -155,7 +154,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
             return { playlist, trackIndex };
         }
     }
-    // Also check if the current track itself is the one (e.g. from search or discover)
     if (state.currentTrack?.youtubeId === trackId) {
         const tempPlaylist = { id: 'search/discover', name: 'Now Playing', tracks: [state.currentTrack] };
         return { playlist: tempPlaylist, trackIndex: 0 };
@@ -193,7 +191,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [ytPlayer]);
 
-
   const controls: PlayerControls = {
     play: () => ytPlayer?.playVideo(),
     pause: () => ytPlayer?.pauseVideo(),
@@ -208,13 +205,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     canPlayPrev: () => {
         if (!state.currentTrack) return false;
-        if (state.playerState.progress > 3) return true; // Can rewind
+        if (state.playerState.progress > 3) return true;
         const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.youtubeId);
         return !!playlist && trackIndex > 0;
     },
   };
-  
-  // YouTube Player Initialization
+
   useEffect(() => {
     const onPlayerReady = (event: any) => {
       setYtPlayer(event.target);
@@ -233,36 +229,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     };
     
-    const setupPlayer = () => {
-        if (window.YT && playerRef.current) {
+    if (!(window as any).onYouTubeIframeAPIReady) {
+      (window as any).onYouTubeIframeAPIReady = () => {
+        if (playerRef.current) {
              new (window as any).YT.Player(playerRef.current, {
                 height: '100%',
                 width: '100%',
-                playerVars: {
-                    autoplay: 0, // Should be 0, we control play via state
-                    controls: 0,
-                    rel: 0,
-                    showinfo: 0,
-                    iv_load_policy: 3,
-                    modestbranding: 1,
-                    origin: typeof window !== 'undefined' ? window.location.origin : '',
-                },
-                events: {
-                    onReady: onPlayerReady,
-                    onStateChange: onPlayerStateChange,
-                },
+                playerVars: { autoplay: 0, controls: 0, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1, origin: typeof window !== 'undefined' ? window.location.origin : '' },
+                events: { onReady: onPlayerReady, onStateChange: onPlayerStateChange },
             });
         }
-    };
-
-    if (!(window as any).onYouTubeIframeAPIReady) {
-      (window as any).onYouTubeIframeAPIReady = setupPlayer;
-    } else {
-        setupPlayer();
+      };
     }
   }, [playNext]);
 
-  // Effect to control the player when the current track changes
   useEffect(() => {
     if (ytPlayer && state.currentTrack) {
         const currentVideoId = ytPlayer.getVideoData ? ytPlayer.getVideoData().video_id : null;
@@ -272,21 +252,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [state.currentTrack, ytPlayer]);
 
-  // Effect to play the video when it's loaded and isPlaying is true
   useEffect(() => {
       if (ytPlayer && state.playerState.isPlaying) {
           ytPlayer.playVideo();
       }
   }, [ytPlayer, state.playerState.isPlaying]);
 
-  // Effect to sync progress
   useEffect(() => {
     let progressInterval: NodeJS.Timeout | null = null;
     if (state.playerState.isPlaying && ytPlayer) {
       progressInterval = setInterval(() => {
         const progress = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
         const duration = ytPlayer.getDuration ? ytPlayer.getDuration() : 0;
-        if (progress !== state.playerState.progress) {
+        if (progress !== state.playerState.progress || duration !== state.playerState.duration) {
           dispatch({ type: 'SET_PLAYER_STATE', payload: { progress, duration } });
         }
       }, 500);
@@ -296,10 +274,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         clearInterval(progressInterval);
       }
     };
-  }, [state.playerState.isPlaying, ytPlayer, state.playerState.progress]);
+  }, [state.playerState.isPlaying, ytPlayer, state.playerState.progress, state.playerState.duration]);
 
-
-  // Handle user state from both next-auth session and our custom JWT
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem('loggedInUser');
@@ -319,8 +295,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [session, status]);
 
-
-  // Load theme from local storage on initial app load
   useEffect(() => {
     try {
       const storedTheme = localStorage.getItem('theme') as Theme | null;
@@ -335,7 +309,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // When the user logs in or out, sync their data from the user object to the context state
   useEffect(() => {
     if (loggedInUser) {
         dispatch({
@@ -355,9 +328,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }
         });
     }
-  }, [loggedInUser]);
+  }, [loggedInUser, state.theme]);
 
-  // When the client-side state changes, save it to the database
   useEffect(() => {
       if (!loggedInUser || !loggedInUser.id) return;
       
@@ -382,7 +354,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   }, [state.playlists, state.defaultPlaylistId, state.theme, loggedInUser, session]);
 
-  // Handle theme changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
         localStorage.setItem('theme', state.theme);
@@ -421,7 +392,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     controls,
   };
 
-
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;
 }
 
@@ -432,3 +402,5 @@ export function useApp() {
   }
   return context;
 }
+
+    

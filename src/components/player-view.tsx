@@ -153,3 +153,5 @@ export default function PlayerView({ setView }: PlayerViewProps) {
     </div>
   );
 }
+
+    
