@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { countries } from '@/lib/countries';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { GearsLoader } from '@/components/ui/gears-loader';
 
 function BeatifApp() {
   const { currentTrack, loggedInUser, setLoggedInUser } = useApp();
@@ -35,16 +36,32 @@ function BeatifApp() {
       setShowCountryDialog(true);
     }
   }, [loggedInUser, router]);
+  
+  useEffect(() => {
+    // When currentTrack changes, if we are not in the player view, show the player bar.
+    // If we are in the player view, update it.
+    if (currentTrack) {
+        if (view.type === 'player') {
+            setView({ type: 'player', track: currentTrack });
+        }
+    }
+  }, [currentTrack, view.type]);
 
   const handleSaveCountry = async () => {
     if (!selectedCountry || !loggedInUser) return;
     setIsSavingCountry(true);
     const updatedUser: User = { ...loggedInUser, country: selectedCountry };
-    await saveUser(updatedUser);
-    setLoggedInUser(updatedUser); // This will also update localStorage via the context
-    toast({ title: "Preferences Saved", description: "Your country has been set." });
-    setShowCountryDialog(false);
-    setIsSavingCountry(false);
+    try {
+        await saveUser(updatedUser);
+        setLoggedInUser(updatedUser); // This will also update localStorage via the context
+        toast({ title: "Preferences Saved", description: "Your country has been set." });
+        setShowCountryDialog(false);
+    } catch (error) {
+        console.error(error);
+        toast({ variant: 'destructive', title: "Save Failed", description: "Could not save your country. Please try again."})
+    } finally {
+        setIsSavingCountry(false);
+    }
   };
   
   const filteredCountries = countries.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()));
@@ -52,8 +69,11 @@ function BeatifApp() {
 
   if (!loggedInUser) {
     return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <p>Redirecting to login...</p>
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+            <div className="flex flex-col items-center gap-4">
+                <GearsLoader size="lg" />
+                <p className="text-muted-foreground">Redirecting to login...</p>
+            </div>
         </div>
     );
   }
@@ -66,17 +86,21 @@ function BeatifApp() {
           <AppSidebar view={view} setView={setView} />
           <MainView view={view} setView={setView} />
         </div>
-        {currentTrack && <PlayerBar track={currentTrack} />}
+        {currentTrack && view.type !== 'player' && <PlayerBar track={currentTrack} setView={setView} />}
       </div>
     </SidebarProvider>
 
     <Dialog open={showCountryDialog} onOpenChange={(isOpen) => {
         // Prevent closing the dialog by clicking outside or pressing Escape
-        if (!isOpen) {
+        if (!isOpen && !loggedInUser?.country) {
             toast({ variant: 'destructive', title: "Selection Required", description: "Please select your country to continue." });
+        } else {
+            setShowCountryDialog(isOpen);
         }
     }}>
-        <DialogContent onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-[425px]">
+        <DialogContent onInteractOutside={(e) => {
+             if (!loggedInUser?.country) e.preventDefault()
+        }} className="sm:max-w-[425px]">
             <DialogHeader>
                 <DialogTitle>Welcome to Beatif!</DialogTitle>
                 <DialogDescription>
@@ -102,7 +126,7 @@ function BeatifApp() {
             </div>
             <DialogFooter>
                 <Button onClick={handleSaveCountry} disabled={!selectedCountry || isSavingCountry}>
-                    {isSavingCountry ? 'Saving...' : 'Save and Continue'}
+                    {isSavingCountry ? <GearsLoader size="sm" className="mr-2" /> : 'Save and Continue'}
                 </Button>
             </DialogFooter>
         </DialogContent>

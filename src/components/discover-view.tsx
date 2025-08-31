@@ -39,8 +39,8 @@ export default function DiscoverView({ setView }: DiscoverViewProps) {
   }, [loggedInUser?.country]);
 
   return (
-    <div className="space-y-8">
-      <div>
+    <div className="p-6">
+      <div className="mb-8">
         <h2 className="text-3xl font-bold font-headline mb-1">
           Trending in {loggedInUser?.country || 'your area'}
         </h2>
@@ -57,7 +57,7 @@ export default function DiscoverView({ setView }: DiscoverViewProps) {
       ) : trendingTracks.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {trendingTracks.map((track) => (
-            <TrackCard key={track.id} track={track} />
+            <TrackCard key={track.id} track={track} setView={setView} />
           ))}
         </div>
       ) : (

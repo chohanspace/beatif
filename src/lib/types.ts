@@ -35,6 +35,7 @@ export type View =
   | { type: 'settings' }
   | { type: 'login' }
   | { type: 'signup' }
+  | { type: 'player'; track: Track }
   | { type: 'forgot-password' };
 
 

@@ -122,6 +122,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const storedTheme = localStorage.getItem('theme') as Theme | null;
       if (storedTheme) {
         dispatch({ type: 'SET_THEME', payload: storedTheme });
+      } else {
+        // If no theme in local storage, check system preference
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        dispatch({ type: 'SET_THEME', payload: prefersDark ? 'dark' : 'light' });
       }
     } catch (error) {
       console.error("Could not load data from localStorage", error);
@@ -136,7 +140,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             payload: {
                 playlists: loggedInUser.playlists || [],
                 defaultPlaylistId: loggedInUser.defaultPlaylistId || null,
-                theme: loggedInUser.theme || 'dark'
+                theme: loggedInUser.theme || state.theme
             }
         });
     } else {
@@ -196,6 +200,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('loggedInUser', JSON.stringify(user));
       } else {
         localStorage.removeItem('loggedInUser');
+        localStorage.removeItem('jwt');
       }
     }
   }

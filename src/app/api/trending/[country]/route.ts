@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import type { Track } from '@/lib/types';
+import crypto from 'crypto';
 
 // In a real app, you would fetch from a music chart API.
 // For now, we use our mock data.
@@ -15,7 +16,15 @@ const mockTracks: Track[] = [
     { id: '7', title: 'Tokyo Drift', artist: 'Teriyaki Boyz', youtubeId: 'ua_tsa1h1vI', thumbnail: 'https://picsum.photos/seed/7/300/300' },
     { id: '8', title: 'Indian Summer', artist: 'Jai Wolf', youtubeId: 'cKx92QPROaM', thumbnail: 'https://picsum.photos/seed/8/300/300' },
     { id: '9', title: 'Paris', artist: 'The Chainsmokers', youtubeId: 'f2JuxM-snGc', thumbnail: 'https://picsum.photos/seed/9/300/300' },
+    { id: '10', title: 'Midnight City', artist: 'M83', youtubeId: 'dX3k_QDnzHE', thumbnail: 'https://picsum.photos/seed/10/300/300' },
+    { id: '11', title: 'Walking On A Dream', artist: 'Empire of the Sun', youtubeId: 'eimgRedL-Ps', thumbnail: 'https://picsum.photos/seed/11/300/300' },
+    { id: '12', title: 'A-Punk', artist: 'Vampire Weekend', youtubeId: '_XC2_FkI_es', thumbnail: 'https://picsum.photos/seed/12/300/300' },
 ];
+
+function pseudoRandom(seed: string): number {
+  const hash = crypto.createHash('sha256').update(seed).digest();
+  return (hash.readUInt32BE(0) / 0xFFFFFFFF);
+}
 
 export async function GET(
   request: NextRequest,
@@ -27,8 +36,8 @@ export async function GET(
   // Simulate fetching data and add a delay
   await new Promise(resolve => setTimeout(resolve, 500));
   
-  // Return a shuffled list of mock tracks
-  const shuffledTracks = [...mockTracks].sort(() => 0.5 - Math.random());
+  // Return a shuffled list of mock tracks based on the country name as a seed
+  const shuffledTracks = [...mockTracks].sort(() => 0.5 - pseudoRandom(country + new Date().toDateString()));
   
   return NextResponse.json(shuffledTracks);
 }

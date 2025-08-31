@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
@@ -18,6 +19,11 @@ export default function SearchView({ query, setView, initialResults }: SearchVie
 
   useEffect(() => {
     const fetchResults = async () => {
+      if (!query) {
+        setResults([]);
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
       const tracks = await searchYoutube(query);
       setResults(tracks);
@@ -26,13 +32,16 @@ export default function SearchView({ query, setView, initialResults }: SearchVie
       setView({ type: 'search', query, results: tracks });
     };
 
-    if (query) {
-      fetchResults();
-    }
+    // Use a timeout to avoid searching on every keystroke if the user is typing fast
+    const debounceTimer = setTimeout(() => {
+        fetchResults();
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
   }, [query, setView]);
 
   return (
-    <div className="space-y-8">
+    <div className="p-6 space-y-8">
       <div>
         <h2 className="text-3xl font-bold font-headline mb-1">
           Search results for "{query}"
@@ -45,7 +54,7 @@ export default function SearchView({ query, setView, initialResults }: SearchVie
       ) : results.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {results.map((track) => (
-            <TrackCard key={track.id} track={track} />
+            <TrackCard key={track.id} track={track} setView={setView} />
           ))}
         </div>
       ) : (

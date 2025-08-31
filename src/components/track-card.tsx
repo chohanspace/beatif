@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import { Plus, Play } from 'lucide-react';
-import type { Track } from '@/lib/types';
+import type { Track, View } from '@/lib/types';
 import { useApp } from '@/context/app-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,14 +12,16 @@ import { useToast } from '@/hooks/use-toast';
 
 interface TrackCardProps {
   track: Track;
+  setView: (view: View) => void;
 }
 
-export default function TrackCard({ track }: TrackCardProps) {
+export default function TrackCard({ track, setView }: TrackCardProps) {
   const { dispatch, defaultPlaylistId, playlists } = useApp();
   const { toast } = useToast();
 
   const handlePlay = () => {
     dispatch({ type: 'SET_CURRENT_TRACK', payload: track });
+    setView({ type: 'player', track });
   };
   
   const handleAddToPlaylist = (playlistId: string) => {

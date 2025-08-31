@@ -1,57 +1,23 @@
 
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
+import { Music, Maximize2 } from 'lucide-react';
 import type { Track } from '@/lib/types';
 import { useApp } from '@/context/app-context';
+import { Button } from './ui/button';
 
 interface PlayerBarProps {
   track: Track;
+  setView: (view: any) => void;
 }
 
-export default function PlayerBar({ track }: PlayerBarProps) {
-  const [showPlayer, setShowPlayer] = useState(false);
-  const { playlists, currentTrack, dispatch } = useApp();
-  const [key, setKey] = useState(Date.now());
-
-  useEffect(() => {
-    setShowPlayer(false);
-    const timer = setTimeout(() => {
-        setKey(Date.now()); // Force re-render of iframe
-        setShowPlayer(true)
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [track]);
-
-  const onEnded = () => {
-    // Find the currently playing track in any playlist or discover view to find the next track
-    // This is a simplified approach. A more robust solution might involve a dedicated queue.
-    let nextTrack: Track | null = null;
-    
-    // Check playlists first
-    for (const playlist of playlists) {
-        const trackIndex = playlist.tracks.findIndex(t => t.id === currentTrack?.id);
-        if (trackIndex > -1 && trackIndex < playlist.tracks.length - 1) {
-            nextTrack = playlist.tracks[trackIndex + 1];
-            break;
-        }
-    }
-    
-    // In a real app, you might also check the context of the 'discover' or 'search' view.
-    // For now, we just handle playlists.
-    
-    if (nextTrack) {
-        dispatch({ type: 'SET_CURRENT_TRACK', payload: nextTrack });
-    }
-  };
-
-
+export default function PlayerBar({ track, setView }: PlayerBarProps) {
   if (!track) return null;
 
   return (
-    <footer className="w-full h-24 bg-card border-t p-4 flex items-center justify-between gap-6 transition-transform duration-500 ease-in-out">
-      <div className="flex items-center gap-4 min-w-0">
+    <footer className="w-full h-20 bg-card border-t p-2 md:p-4 flex items-center justify-between gap-4 md:gap-6">
+      <div className="flex items-center gap-2 md:gap-4 min-w-0">
         <Image
           src={track.thumbnail}
           alt={track.title}
@@ -61,37 +27,27 @@ export default function PlayerBar({ track }: PlayerBarProps) {
           data-ai-hint="album cover"
         />
         <div className="min-w-0">
-          <h3 className="font-semibold truncate">{track.title}</h3>
-          <p className="text-sm text-muted-foreground truncate">{track.artist}</p>
+          <h3 className="font-semibold truncate text-sm md:text-base">{track.title}</h3>
+          <p className="text-xs md:text-sm text-muted-foreground truncate">{track.artist}</p>
         </div>
       </div>
-      <div className="w-full max-w-lg">
-        {showPlayer && (
-          <iframe
-            key={key}
-            width="100%"
-            height="80"
-            src={`https://www.youtube.com/embed/${track.youtubeId}?autoplay=1&controls=1&enablejsapi=1`}
-            title="YouTube video player"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="rounded-lg"
-            onLoad={(e) => {
-                const player = new (window as any).YT.Player(e.target, {
-                    events: {
-                        'onStateChange': (event: any) => {
-                            if (event.data === (window as any).YT.PlayerState.ENDED) {
-                                onEnded();
-                            }
-                        }
-                    }
-                });
-            }}
-          ></iframe>
-        )}
+      
+      <div className="flex items-center gap-2">
+        <Music className="w-5 h-5 md:w-6 md:h-6 animate-pulse text-primary" />
+        <span className="text-sm text-muted-foreground hidden lg:inline">Now Playing</span>
       </div>
-      <div className="w-64"></div>
+
+      <div className="flex items-center justify-end min-w-fit">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => setView({ type: 'player', track })}
+          aria-label="Expand player"
+          className="w-12 h-12"
+        >
+          <Maximize2 className="w-6 h-6" />
+        </Button>
+      </div>
     </footer>
   );
 }
