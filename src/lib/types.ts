@@ -25,6 +25,7 @@ export interface User {
   playlists?: Playlist[];
   defaultPlaylistId?: string | null;
   favoriteSingers?: string[];
+  theme?: 'light' | 'dark';
 }
 
 export type View =

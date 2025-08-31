@@ -66,6 +66,7 @@ export async function signUp(email: string, password: string): Promise<{ success
       playlists: [],
       defaultPlaylistId: null,
       favoriteSingers: [],
+      theme: 'dark',
     };
     
     await users.insertOne(userToSave);
@@ -231,6 +232,7 @@ export async function createUserAsAdmin(email: string, password: string): Promis
       playlists: [],
       defaultPlaylistId: null,
       favoriteSingers: [],
+      theme: 'dark',
     };
 
     await users.insertOne(newUser);
@@ -256,6 +258,7 @@ export async function getAllUsers(): Promise<User[]> {
 
 export async function saveUser(user: User): Promise<void> {
     const usersCollection = await getUsersCollection();
+    // Prevent trying to update the immutable _id field and ensure the 'id' string field isn't saved to mongo
     const { id, ...userToSave } = user;
     await usersCollection.updateOne({ email: user.email }, { $set: userToSave }, { upsert: true });
 }

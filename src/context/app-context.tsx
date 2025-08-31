@@ -5,10 +5,13 @@ import React, { createContext, useContext, useReducer, useEffect, type ReactNode
 import type { Track, Playlist, User } from '@/lib/types';
 import { saveUser } from '@/lib/auth';
 
+type Theme = 'light' | 'dark';
+
 interface AppState {
   playlists: Playlist[];
   currentTrack: Track | null;
   defaultPlaylistId: string | null;
+  theme: Theme;
 }
 
 type AppAction =
@@ -18,12 +21,14 @@ type AppAction =
   | { type: 'RENAME_PLAYLIST'; payload: { id: string; newName: string } }
   | { type: 'DELETE_PLAYLIST'; payload: { id: string } }
   | { type: 'SET_DEFAULT_PLAYLIST'; payload: { id: string | null } }
-  | { type: 'SET_USER_DATA'; payload: { playlists: Playlist[], defaultPlaylistId: string | null }};
+  | { type: 'SET_USER_DATA'; payload: { playlists: Playlist[], defaultPlaylistId: string | null, theme?: Theme } }
+  | { type: 'SET_THEME'; payload: Theme };
 
 interface AppContextType extends AppState {
   dispatch: React.Dispatch<AppAction>;
   loggedInUser: User | null;
   setLoggedInUser: React.Dispatch<React.SetStateAction<User | null>>;
+  setTheme: (theme: Theme) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -78,7 +83,15 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, defaultPlaylistId: action.payload.id };
 
     case 'SET_USER_DATA':
-        return { ...state, playlists: action.payload.playlists, defaultPlaylistId: action.payload.defaultPlaylistId };
+        return { 
+          ...state, 
+          playlists: action.payload.playlists, 
+          defaultPlaylistId: action.payload.defaultPlaylistId,
+          theme: action.payload.theme || state.theme
+        };
+
+    case 'SET_THEME':
+      return { ...state, theme: action.payload };
 
     default:
       return state;
@@ -93,6 +106,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     playlists: [],
     currentTrack: null,
     defaultPlaylistId: null,
+    theme: 'dark'
   };
   
   const [state, dispatch] = useReducer(appReducer, initialState);
@@ -105,8 +119,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const user = JSON.parse(storedUser);
         setLoggedInUser(user);
       }
+      const storedTheme = localStorage.getItem('theme') as Theme | null;
+      if (storedTheme) {
+        dispatch({ type: 'SET_THEME', payload: storedTheme });
+      }
     } catch (error) {
-      console.error("Could not load user from localStorage", error);
+      console.error("Could not load data from localStorage", error);
     }
   }, []);
 
@@ -117,7 +135,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             type: 'SET_USER_DATA',
             payload: {
                 playlists: loggedInUser.playlists || [],
-                defaultPlaylistId: loggedInUser.defaultPlaylistId || null
+                defaultPlaylistId: loggedInUser.defaultPlaylistId || null,
+                theme: loggedInUser.theme || 'dark'
             }
         });
     } else {
@@ -125,7 +144,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             type: 'SET_USER_DATA',
             payload: {
                 playlists: [],
-                defaultPlaylistId: null
+                defaultPlaylistId: null,
             }
         });
     }
@@ -136,13 +155,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!loggedInUser || !loggedInUser.id) return;
       
       const hasStateChanged = JSON.stringify(loggedInUser.playlists || []) !== JSON.stringify(state.playlists) ||
-                              loggedInUser.defaultPlaylistId !== state.defaultPlaylistId;
+                              loggedInUser.defaultPlaylistId !== state.defaultPlaylistId ||
+                              loggedInUser.theme !== state.theme;
 
       if(hasStateChanged) {
         const updatedUser: User = { 
             ...loggedInUser, 
             playlists: state.playlists, 
-            defaultPlaylistId: state.defaultPlaylistId 
+            defaultPlaylistId: state.defaultPlaylistId,
+            theme: state.theme
         };
         saveUser(updatedUser).then(() => {
             // Also update the state in the provider and local storage
@@ -153,7 +174,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }).catch(err => console.error("Failed to save user state:", err));
       }
 
-  }, [state.playlists, state.defaultPlaylistId, loggedInUser]);
+  }, [state.playlists, state.defaultPlaylistId, state.theme, loggedInUser]);
+
+  // Handle theme changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('theme', state.theme);
+        document.documentElement.classList.remove('light', 'dark');
+        document.documentElement.classList.add(state.theme);
+    }
+  }, [state.theme]);
+
+  const setTheme = (theme: Theme) => {
+    dispatch({ type: 'SET_THEME', payload: theme });
+  };
 
   const setAndStoreUser = (user: User | null) => {
     setLoggedInUser(user);
@@ -167,7 +201,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
 
-  return <AppContext.Provider value={{ ...state, dispatch, loggedInUser, setLoggedInUser: setAndStoreUser }}>{children}</AppContext.Provider>;
+  return <AppContext.Provider value={{ ...state, dispatch, loggedInUser, setLoggedInUser: setAndStoreUser, setTheme }}>{children}</AppContext.Provider>;
 }
 
 export function useApp() {
