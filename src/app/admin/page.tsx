@@ -128,8 +128,8 @@ export default function AdminPage() {
         <div className="w-full max-w-sm p-6 space-y-4 border rounded-lg shadow-lg">
             <div className="text-center">
                 <Shield size={48} className="mx-auto text-primary" />
-                <h1 className="text-2xl font-bold mt-2">Admin Access</h1>
-                <p className="text-muted-foreground">Enter the access key to continue.</p>
+                <h1 className="text-2xl font-bold mt-2">XXX Access</h1>
+                <p className="text-muted-foreground">Enter the XXX key to continue.</p>
             </div>
             <div className="flex gap-2">
                 <Input 
