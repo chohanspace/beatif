@@ -37,17 +37,16 @@ function BeatifApp() {
   }, [loggedInUser]);
   
   useEffect(() => {
-    // Logic to move the iframe to the player view when it's active
     const playerContainer = document.getElementById('player-container');
     const globalPlayerContainer = document.getElementById('global-player-container');
+    const playerIframe = playerRef?.current?.firstChild;
 
-    if (view.type === 'player' && playerRef?.current) {
-        if (playerContainer) {
-            playerContainer.appendChild(playerRef.current);
-        }
-    } else if (globalPlayerContainer && playerRef?.current && playerRef.current.parentElement !== globalPlayerContainer) {
-        // When not in player view, ensure the player is back in its hidden global container
-        globalPlayerContainer.appendChild(playerRef.current);
+    if (playerIframe) {
+      if (view.type === 'player' && playerContainer && playerIframe.parentElement !== playerContainer) {
+        playerContainer.appendChild(playerIframe);
+      } else if (view.type !== 'player' && globalPlayerContainer && playerIframe.parentElement !== globalPlayerContainer) {
+        globalPlayerContainer.appendChild(playerIframe);
+      }
     }
   }, [view.type, playerRef]);
 
