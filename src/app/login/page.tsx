@@ -182,7 +182,7 @@ export default function AuthPage() {
             
             {isLogin ? (
                 <Form {...loginForm}>
-                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6">
+                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6" key="login-form">
                         <FormField control={loginForm.control} name="email" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Email</FormLabel>
@@ -215,7 +215,7 @@ export default function AuthPage() {
                 </Form>
             ) : (
                 <Form {...signupForm}>
-                    <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-6">
+                    <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-6" key="signup-form">
                         <FormField control={signupForm.control} name="email" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Email</FormLabel>
