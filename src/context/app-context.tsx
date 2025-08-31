@@ -8,6 +8,14 @@ import { useSession } from 'next-auth/react';
 
 type Theme = 'light' | 'dark';
 
+interface AppState {
+  playlists: Playlist[];
+  currentTrack: Track | null;
+  defaultPlaylistId: string | null;
+  theme: Theme;
+  playerState: PlayerState;
+}
+
 interface PlayerState {
   isPlaying: boolean;
   progress: number;
@@ -28,13 +36,24 @@ interface PlayerControls {
 interface AppContextType extends AppState {
   dispatch: React.Dispatch<AppAction>;
   loggedInUser: User | null;
-  setLoggedInUser: React.Dispatch<React.SetStateAction<User | null>>;
+  setLoggedInUser: (user: User | null) => void;
   setTheme: (theme: Theme) => void;
   ytPlayer: any | null;
   setYtPlayer: (player: any) => void;
   playerRef: React.RefObject<HTMLDivElement> | null;
   controls: PlayerControls;
 }
+
+type AppAction =
+  | { type: 'SET_CURRENT_TRACK'; payload: Track | null }
+  | { type: 'CREATE_PLAYLIST'; payload: { name: string; tracks: Track[] } }
+  | { type: 'ADD_TRACK_TO_PLAYLIST'; payload: { playlistId: string; track: Track } }
+  | { type: 'RENAME_PLAYLIST'; payload: { id: string; newName: string } }
+  | { type: 'DELETE_PLAYLIST'; payload: { id: string } }
+  | { type: 'SET_DEFAULT_PLAYLIST'; payload: { id: string } }
+  | { type: 'SET_USER_DATA'; payload: { playlists: Playlist[], defaultPlaylistId: string | null, theme?: Theme } }
+  | { type: 'SET_THEME'; payload: Theme }
+  | { type: 'SET_PLAYER_STATE'; payload: Partial<PlayerState> };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -164,10 +183,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     play: () => ytPlayer?.playVideo(),
     pause: () => ytPlayer?.pauseVideo(),
     togglePlay: () => {
+        if (!ytPlayer) return;
         if (state.playerState.isPlaying) {
-            ytPlayer?.pauseVideo();
+            ytPlayer.pauseVideo();
         } else {
-            ytPlayer?.playVideo();
+            ytPlayer.playVideo();
         }
     },
     seek: (time: number) => ytPlayer?.seekTo(time, true),
@@ -180,6 +200,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     canPlayPrev: () => {
         if (!state.currentTrack) return false;
+        if (state.playerState.progress > 3) return true; // Can rewind
         const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.id);
         return !!playlist && trackIndex > 0;
     },
