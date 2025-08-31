@@ -2,9 +2,12 @@
 import NextAuth from "next-auth"
 import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
-import { getUser, saveUser } from "@/lib/auth"
+import { MongoDBAdapter } from "@next-auth/mongodb-adapter"
+import clientPromise from "@/lib/mongodb"
+import { getUser } from "@/lib/auth"
 
 export const authOptions: NextAuthOptions = {
+  adapter: MongoDBAdapter(clientPromise),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -12,44 +15,21 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }: any) {
-      if (account.provider === "google") {
-        const existingUser = await getUser(user.email);
-        if (!existingUser) {
-          const newUser = {
-            id: user.email,
-            email: user.email,
-            name: user.name,
-            image: user.image,
-            createdAt: Date.now(),
-            isVerified: true,
-            playlists: [],
-            defaultPlaylistId: null,
-            favoriteSingers: [],
-            theme: 'dark',
-          };
-          // @ts-ignore
-          await saveUser(newUser);
-        }
-      }
-      return true
-    },
-    async jwt({ token, user }: any) {
-      if (user) {
-        token.id = user.email
-      }
-      return token
-    },
-    async session({ session, token }: any) {
+    async session({ session, user }: any) {
+      // The user object here is the one from the database, thanks to the adapter.
+      // We can add the user's ID and other custom fields to the session object.
       if (session.user) {
-        session.user.id = token.id
+        session.user.id = user.id;
         const userFromDb = await getUser(session.user.email);
-        if(userFromDb) {
+        if (userFromDb) {
             session.user = { ...session.user, ...userFromDb };
         }
       }
       return session
     },
+  },
+  session: {
+    strategy: "database",
   },
   secret: process.env.NEXTAUTH_SECRET,
 }
