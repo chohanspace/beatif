@@ -5,7 +5,6 @@ import React, { createContext, useContext, useReducer, useEffect, type ReactNode
 import type { Track, Playlist, User } from '@/lib/types';
 import { saveUser } from '@/lib/auth';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 
 type Theme = 'light' | 'dark';
 
@@ -104,7 +103,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
   const { data: session, status } = useSession();
-  const router = useRouter();
 
   const initialState: AppState = {
     playlists: [],
