@@ -258,8 +258,19 @@ export async function getAllUsers(): Promise<User[]> {
 
 export async function saveUser(user: User): Promise<void> {
     const usersCollection = await getUsersCollection();
+    
+    // Create a mutable copy of the user object to avoid modifying the original
+    const userToSave: Partial<User & { _id?: ObjectId }> = { ...user };
+    
     // Prevent trying to update the immutable _id field and ensure the 'id' string field isn't saved to mongo
-    const { id, ...userToSave } = user;
+    if (userToSave.id) {
+        delete userToSave.id;
+    }
+    // Also remove _id if it exists from a direct mongo query
+    if (userToSave._id) {
+        delete userToSave._id;
+    }
+
     await usersCollection.updateOne({ email: user.email }, { $set: userToSave }, { upsert: true });
 }
 
