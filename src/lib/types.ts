@@ -30,6 +30,7 @@ export type View =
   | { type: 'recommendations' }
   | { type: 'playlist'; playlistId: string }
   | { type: 'search'; query: string; results?: Track[] }
+  | { type: 'trending' }
   | { type: 'login' }
   | { type: 'signup' }
   | { type: 'forgot-password' };

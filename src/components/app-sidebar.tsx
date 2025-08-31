@@ -2,7 +2,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from 'react';
-import { Home, Music, ListMusic, Plus, Bot, Library, LogOut } from 'lucide-react';
+import { Home, Music, ListMusic, Plus, Bot, Library, LogOut, TrendingUp } from 'lucide-react';
 import { useApp } from '@/context/app-context';
 import type { View } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -86,6 +86,16 @@ export default function AppSidebar({ view, setView }: AppSidebarProps) {
                     >
                          <Home />
                         <span>Discover</span>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton
+                        onClick={() => setView({ type: 'trending' })}
+                        isActive={view.type === 'trending'}
+                        tooltip="Trending"
+                    >
+                         <TrendingUp />
+                        <span>Trending</span>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>

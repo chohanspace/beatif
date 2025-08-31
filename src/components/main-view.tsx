@@ -8,6 +8,7 @@ import DiscoverView from './discover-view';
 import RecommendationsView from './recommendations-view';
 import PlaylistView from './playlist-view';
 import SearchView from './search-view';
+import TrendingView from './trending-view';
 import LoginPage from '@/app/login/page';
 import SignupPage from '@/app/signup/page';
 import ForgotPasswordPage from '@/app/forgot-password/page';
@@ -41,6 +42,7 @@ export default function MainView({ view, setView }: MainViewProps) {
         {view.type === 'recommendations' && <RecommendationsView />}
         {view.type === 'playlist' && <PlaylistView playlistId={view.playlistId} />}
         {view.type === 'search' && <SearchView query={view.query} setView={setView} initialResults={view.results} />}
+        {view.type === 'trending' && <TrendingView />}
       </div>
     </SidebarInset>
   );
