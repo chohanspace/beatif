@@ -1,18 +1,36 @@
 
 "use client";
 
-import React, { createContext, useContext, useReducer, useEffect, type ReactNode, useState } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, type ReactNode, useState, useRef, useCallback } from 'react';
 import type { Track, Playlist, User } from '@/lib/types';
 import { saveUser } from '@/lib/auth';
 import { useSession } from 'next-auth/react';
 
 type Theme = 'light' | 'dark';
 
+interface PlayerState {
+  isPlaying: boolean;
+  progress: number;
+  duration: number;
+}
+
+interface PlayerControls {
+    play: () => void;
+    pause: () => void;
+    togglePlay: () => void;
+    seek: (time: number) => void;
+    playNext: () => void;
+    playPrev: () => void;
+    canPlayNext: boolean;
+    canPlayPrev: boolean;
+}
+
 interface AppState {
   playlists: Playlist[];
   currentTrack: Track | null;
   defaultPlaylistId: string | null;
   theme: Theme;
+  playerState: PlayerState;
 }
 
 type AppAction =
@@ -23,13 +41,20 @@ type AppAction =
   | { type: 'DELETE_PLAYLIST'; payload: { id: string } }
   | { type: 'SET_DEFAULT_PLAYLIST'; payload: { id: string | null } }
   | { type: 'SET_USER_DATA'; payload: { playlists: Playlist[], defaultPlaylistId: string | null, theme?: Theme } }
-  | { type: 'SET_THEME'; payload: Theme };
+  | { type: 'SET_THEME'; payload: Theme }
+  | { type: 'SET_PLAYER_STATE'; payload: Partial<PlayerState> }
+  | { type: 'SET_PLAYER_READY'; payload: boolean };
+
 
 interface AppContextType extends AppState {
   dispatch: React.Dispatch<AppAction>;
   loggedInUser: User | null;
   setLoggedInUser: React.Dispatch<React.SetStateAction<User | null>>;
   setTheme: (theme: Theme) => void;
+  ytPlayer: any | null;
+  setYtPlayer: (player: any) => void;
+  playerRef: React.RefObject<HTMLDivElement> | null;
+  controls: PlayerControls;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -37,7 +62,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_CURRENT_TRACK':
-      return { ...state, currentTrack: action.payload };
+      return { ...state, currentTrack: action.payload, playerState: { ...state.playerState, isPlaying: !!action.payload, progress: 0 } };
 
     case 'CREATE_PLAYLIST': {
       const newPlaylist: Playlist = {
@@ -94,6 +119,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'SET_THEME':
       return { ...state, theme: action.payload };
 
+    case 'SET_PLAYER_STATE':
+        return {
+            ...state,
+            playerState: { ...state.playerState, ...action.payload },
+        };
+
     default:
       return state;
   }
@@ -103,23 +134,93 @@ function appReducer(state: AppState, action: AppAction): AppState {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
   const { data: session, status } = useSession();
-
+  const [ytPlayer, setYtPlayer] = useState<any>(null);
+  const playerRef = useRef<HTMLDivElement>(null);
+  
   const initialState: AppState = {
     playlists: [],
     currentTrack: null,
     defaultPlaylistId: null,
-    theme: 'dark'
+    theme: 'dark',
+    playerState: {
+        isPlaying: false,
+        progress: 0,
+        duration: 0,
+    }
   };
   
   const [state, dispatch] = useReducer(appReducer, initialState);
   
+  const findTrackInPlaylists = useCallback((trackId: string) => {
+    for (const playlist of state.playlists) {
+        const trackIndex = playlist.tracks.findIndex(t => t.id === trackId);
+        if (trackIndex !== -1) {
+            return { playlist, trackIndex };
+        }
+    }
+    return { playlist: null, trackIndex: -1 };
+  }, [state.playlists]);
+  
+  const playNext = useCallback(() => {
+    if (!state.currentTrack) return;
+    const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.id);
+    if (playlist && trackIndex < playlist.tracks.length - 1) {
+        dispatch({ type: 'SET_CURRENT_TRACK', payload: playlist.tracks[trackIndex + 1] });
+    }
+  }, [state.currentTrack, findTrackInPlaylists, dispatch]);
+
+  const playPrev = useCallback(() => {
+    if (!state.currentTrack) return;
+    if (state.playerState.progress > 3 && ytPlayer) {
+        ytPlayer.seekTo(0);
+        return;
+    }
+    const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.id);
+    if (playlist && trackIndex > 0) {
+        dispatch({ type: 'SET_CURRENT_TRACK', payload: playlist.tracks[trackIndex - 1] });
+    }
+  }, [state.currentTrack, state.playerState.progress, ytPlayer, findTrackInPlaylists, dispatch]);
+  
+  const controls: PlayerControls = {
+    play: () => ytPlayer?.playVideo(),
+    pause: () => ytPlayer?.pauseVideo(),
+    togglePlay: () => {
+        if (state.playerState.isPlaying) {
+            ytPlayer?.pauseVideo();
+        } else {
+            ytPlayer?.playVideo();
+        }
+    },
+    seek: (time: number) => ytPlayer?.seekTo(time, true),
+    playNext,
+    playPrev,
+    canPlayNext: (() => {
+        if (!state.currentTrack) return false;
+        const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.id);
+        return !!playlist && trackIndex < playlist.tracks.length - 1;
+    })(),
+    canPlayPrev: (() => {
+        if (!state.currentTrack) return false;
+        const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.id);
+        return !!playlist && trackIndex > 0;
+    })(),
+  };
+
   // Handle user state from both next-auth session and our custom JWT
   useEffect(() => {
-    // Try to load user from localStorage on initial load
     try {
       const storedUser = localStorage.getItem('loggedInUser');
       if (storedUser) {
-        setLoggedInUser(JSON.parse(storedUser));
+        const user = JSON.parse(storedUser);
+        setLoggedInUser(user);
+        dispatch({
+          type: 'SET_USER_DATA',
+          payload: {
+            playlists: user.playlists || [],
+            defaultPlaylistId: user.defaultPlaylistId || null,
+            theme: user.theme || 'dark'
+          }
+        });
       }
     } catch (error) {
       console.error("Could not load user from localStorage", error);
@@ -231,8 +332,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const contextValue: AppContextType = {
+    ...state,
+    dispatch,
+    loggedInUser,
+    setLoggedInUser: setAndStoreUser,
+    setTheme,
+    ytPlayer,
+    setYtPlayer,
+    playerRef,
+    controls,
+  };
 
-  return <AppContext.Provider value={{ ...state, dispatch, loggedInUser, setLoggedInUser: setAndStoreUser, setTheme }}>{children}</AppContext.Provider>;
+
+  return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;
 }
 
 export function useApp() {

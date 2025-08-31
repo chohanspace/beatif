@@ -3,32 +3,32 @@
 
 import Image from 'next/image';
 import { Music, Maximize2 } from 'lucide-react';
-import type { Track } from '@/lib/types';
 import { useApp } from '@/context/app-context';
 import { Button } from './ui/button';
 
 interface PlayerBarProps {
-  track: Track;
   setView: (view: any) => void;
 }
 
-export default function PlayerBar({ track, setView }: PlayerBarProps) {
-  if (!track) return null;
+export default function PlayerBar({ setView }: PlayerBarProps) {
+  const { currentTrack } = useApp();
+  
+  if (!currentTrack) return null;
 
   return (
     <footer className="w-full h-20 bg-card border-t p-2 md:p-4 flex items-center justify-between gap-4 md:gap-6">
       <div className="flex items-center gap-2 md:gap-4 min-w-0">
         <Image
-          src={track.thumbnail}
-          alt={track.title}
+          src={currentTrack.thumbnail}
+          alt={currentTrack.title}
           width={56}
           height={56}
           className="rounded-md aspect-square object-cover"
           data-ai-hint="album cover"
         />
         <div className="min-w-0">
-          <h3 className="font-semibold truncate text-sm md:text-base">{track.title}</h3>
-          <p className="text-xs md:text-sm text-muted-foreground truncate">{track.artist}</p>
+          <h3 className="font-semibold truncate text-sm md:text-base">{currentTrack.title}</h3>
+          <p className="text-xs md:text-sm text-muted-foreground truncate">{currentTrack.artist}</p>
         </div>
       </div>
       
@@ -41,7 +41,7 @@ export default function PlayerBar({ track, setView }: PlayerBarProps) {
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={() => setView({ type: 'player', track })}
+          onClick={() => setView({ type: 'player' })}
           aria-label="Expand player"
           className="w-12 h-12"
         >

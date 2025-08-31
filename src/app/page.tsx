@@ -19,9 +19,10 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MusicalNotesLoader } from '@/components/ui/gears-loader';
 import { useSession } from 'next-auth/react';
+import PlayerView from '@/components/player-view';
 
 function BeatifApp() {
-  const { currentTrack, loggedInUser, setLoggedInUser } = useApp();
+  const { currentTrack, loggedInUser, setLoggedInUser, playerRef } = useApp();
   const [view, setView] = useState<View>({ type: 'discover' });
   const [showCountryDialog, setShowCountryDialog] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState('');
@@ -36,14 +37,16 @@ function BeatifApp() {
   }, [loggedInUser]);
   
   useEffect(() => {
-    // When currentTrack changes, if we are not in the player view, show the player bar.
-    // If we are in the player view, update it.
-    if (currentTrack) {
-        if (view.type === 'player') {
-            setView({ type: 'player', track: currentTrack });
+    // Logic to move the iframe to the player view when it's active
+    const playerContainer = document.getElementById('player-container');
+    if (view.type === 'player' && playerRef?.current) {
+        if (playerContainer) {
+            playerContainer.appendChild(playerRef.current);
         }
+    } else if (playerRef?.current?.parentElement !== document.body) {
+        document.body.appendChild(playerRef.current);
     }
-  }, [currentTrack, view.type]);
+  }, [view.type, playerRef]);
 
   const handleSaveCountry = async () => {
     if (!selectedCountry || !loggedInUser) return;
@@ -63,6 +66,11 @@ function BeatifApp() {
   };
   
   const filteredCountries = countries.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()));
+  
+  // Conditionally render PlayerView to avoid issues with SSR for the dialog
+  if (view.type === 'player') {
+    return <PlayerView setView={setView} />;
+  }
 
   return (
     <>
@@ -72,7 +80,7 @@ function BeatifApp() {
           <AppSidebar view={view} setView={setView} />
           <MainView view={view} setView={setView} />
         </div>
-        {currentTrack && view.type !== 'player' && <PlayerBar track={currentTrack} setView={setView} />}
+        {currentTrack && <PlayerBar setView={setView} />}
       </div>
     </SidebarProvider>
 

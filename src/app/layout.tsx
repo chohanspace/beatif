@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import Script from 'next/script';
 import AuthProvider from '@/context/auth-provider';
+import { GlobalPlayer } from '@/components/global-player';
 
 export const metadata: Metadata = {
   title: 'Beatif',
@@ -50,6 +51,7 @@ export default function RootLayout({
             <AppProvider>
                 {children}
                 <Toaster />
+                <GlobalPlayer />
             </AppProvider>
         </AuthProvider>
         <Script src="https://www.youtube.com/iframe_api" strategy="beforeInteractive" />

@@ -31,13 +31,13 @@ export interface User {
 }
 
 export type View =
-  | { type: 'discover'; results?: Track[] }
+  | { type: 'discover' }
   | { type: 'playlist'; playlistId: string }
   | { type: 'search'; query: string; results?: Track[] }
   | { type: 'settings' }
   | { type: 'login' }
   | { type: 'signup' }
-  | { type: 'player'; track: Track }
+  | { type: 'player' }
   | { type: 'forgot-password' };
 
 
