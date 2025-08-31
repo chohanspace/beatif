@@ -121,7 +121,7 @@ export default function PlayerView({ setView }: PlayerViewProps) {
 
 
         <div className="flex items-center justify-center w-full max-w-md gap-2 md:gap-4">
-            <Button variant="ghost" size="icon" className="h-12 w-12 md:h-16 md:w-16" onClick={controls.playPrev} disabled={!controls.canPlayPrev}>
+            <Button variant="ghost" size="icon" className="h-12 w-12 md:h-16 md:w-16" onClick={controls.playPrev} disabled={!controls.canPlayPrev()}>
                 <SkipBack className="h-6 w-6 md:h-8 md:w-8" />
             </Button>
             <Button variant="ghost" size="icon" className="h-12 w-12 md:h-16 md:w-16" onClick={() => controls.seek(playerState.progress - 10)} disabled={!playerState.duration}>
@@ -133,7 +133,7 @@ export default function PlayerView({ setView }: PlayerViewProps) {
              <Button variant="ghost" size="icon" className="h-12 w-12 md:h-16 md:w-16" onClick={() => controls.seek(playerState.progress + 10)} disabled={!playerState.duration}>
                 <FastForward className="h-6 w-6 md:h-8 md:w-8" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-12 w-12 md:h-16 md:w-16" onClick={controls.playNext} disabled={!controls.canPlayNext}>
+            <Button variant="ghost" size="icon" className="h-12 w-12 md:h-16 md:w-16" onClick={controls.playNext} disabled={!controls.canPlayNext()}>
                 <SkipForward className="h-6 w-6 md:h-8 md:w-8" />
             </Button>
         </div>

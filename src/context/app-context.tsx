@@ -21,30 +21,9 @@ interface PlayerControls {
     seek: (time: number) => void;
     playNext: () => void;
     playPrev: () => void;
-    canPlayNext: boolean;
-    canPlayPrev: boolean;
+    canPlayNext: () => boolean;
+    canPlayPrev: () => boolean;
 }
-
-interface AppState {
-  playlists: Playlist[];
-  currentTrack: Track | null;
-  defaultPlaylistId: string | null;
-  theme: Theme;
-  playerState: PlayerState;
-}
-
-type AppAction =
-  | { type: 'SET_CURRENT_TRACK'; payload: Track | null }
-  | { type: 'CREATE_PLAYLIST'; payload: { name: string; tracks: Track[] } }
-  | { type: 'ADD_TRACK_TO_PLAYLIST'; payload: { playlistId: string; track: Track } }
-  | { type: 'RENAME_PLAYLIST'; payload: { id: string; newName: string } }
-  | { type: 'DELETE_PLAYLIST'; payload: { id: string } }
-  | { type: 'SET_DEFAULT_PLAYLIST'; payload: { id: string | null } }
-  | { type: 'SET_USER_DATA'; payload: { playlists: Playlist[], defaultPlaylistId: string | null, theme?: Theme } }
-  | { type: 'SET_THEME'; payload: Theme }
-  | { type: 'SET_PLAYER_STATE'; payload: Partial<PlayerState> }
-  | { type: 'SET_PLAYER_READY'; payload: boolean };
-
 
 interface AppContextType extends AppState {
   dispatch: React.Dispatch<AppAction>;
@@ -194,16 +173,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     seek: (time: number) => ytPlayer?.seekTo(time, true),
     playNext,
     playPrev,
-    canPlayNext: (() => {
+    canPlayNext: () => {
         if (!state.currentTrack) return false;
         const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.id);
         return !!playlist && trackIndex < playlist.tracks.length - 1;
-    })(),
-    canPlayPrev: (() => {
+    },
+    canPlayPrev: () => {
         if (!state.currentTrack) return false;
         const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.id);
         return !!playlist && trackIndex > 0;
-    })(),
+    },
   };
 
   // Handle user state from both next-auth session and our custom JWT
