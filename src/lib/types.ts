@@ -35,8 +35,6 @@ export type View =
   | { type: 'playlist'; playlistId: string }
   | { type: 'search'; query: string; results?: Track[] }
   | { type: 'settings' }
-  | { type: 'login' }
-  | { type: 'signup' }
   | { type: 'player' }
   | { type: 'forgot-password' };
 

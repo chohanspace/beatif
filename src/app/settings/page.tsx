@@ -34,7 +34,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!loggedInUser) {
-      router.push('/login');
+      router.push('/');
     } else {
         setSelectedCountry(loggedInUser.country || '');
         setFavoriteSingers((loggedInUser.favoriteSingers || []).join(', '));
