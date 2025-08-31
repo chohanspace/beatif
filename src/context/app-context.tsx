@@ -68,21 +68,29 @@ function appReducer(state: AppState, action: AppAction): AppState {
       updatedPlaylists = state.playlists.map(p => 
         p.id === action.payload.id ? { ...p, name: action.payload.newName } : p
       );
-      localStorage.setItem('playlists', JSON.stringify(updatedPlaylists));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('playlists', JSON.stringify(updatedPlaylists));
+      }
       return { ...state, playlists: updatedPlaylists };
 
     case 'DELETE_PLAYLIST':
       updatedPlaylists = state.playlists.filter(p => p.id !== action.payload.id);
-      localStorage.setItem('playlists', JSON.stringify(updatedPlaylists));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('playlists', JSON.stringify(updatedPlaylists));
+      }
       // If the deleted playlist was the default, unset it
       const newDefaultId = state.defaultPlaylistId === action.payload.id ? null : state.defaultPlaylistId;
       if (state.defaultPlaylistId === action.payload.id) {
-          localStorage.removeItem('defaultPlaylistId');
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('defaultPlaylistId');
+          }
       }
       return { ...state, playlists: updatedPlaylists, defaultPlaylistId: newDefaultId };
 
     case 'SET_DEFAULT_PLAYLIST':
-      localStorage.setItem('defaultPlaylistId', action.payload.id);
+       if (typeof window !== 'undefined') {
+        localStorage.setItem('defaultPlaylistId', action.payload.id);
+      }
       return { ...state, defaultPlaylistId: action.payload.id };
 
     case 'LOAD_DEFAULT_PLAYLIST':
