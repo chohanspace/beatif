@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import { useApp } from '@/context/app-context';
 
 export function GlobalPlayer() {
-  const { currentTrack, setYtPlayer, dispatch, playerRef, controls } = useApp();
+  const { currentTrack, ytPlayer, setYtPlayer, dispatch, playerRef, controls } = useApp();
   const isReady = useRef(false);
 
   useEffect(() => {
@@ -25,7 +25,8 @@ export function GlobalPlayer() {
           rel: 0,
           showinfo: 0,
           iv_load_policy: 3,
-          modestbranding: 1
+          modestbranding: 1,
+          origin: window.location.origin,
         },
         events: {
           onReady: (event: any) => {
@@ -46,30 +47,30 @@ export function GlobalPlayer() {
       });
     };
 
-    if (!(window as any).YT || !(window as any).YT.Player) {
+    if (!(window as any).onYouTubeIframeAPIReady) {
       (window as any).onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
-    } else {
+    }
+
+    if ((window as any).YT && (window as any).YT.Player) {
        onYouTubeIframeAPIReady();
     }
   }, [setYtPlayer, dispatch, controls]);
 
   useEffect(() => {
     let progressInterval: NodeJS.Timeout;
-    const player = (playerRef?.current?.firstChild as any)?.contentWindow?.player;
-    if (player && isReady.current) {
-        if (currentTrack) {
-            player.loadVideoById(currentTrack.youtubeId);
-            dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true } });
-        } else {
-            player.stopVideo();
-            dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false } });
-        }
+    
+    if (ytPlayer && currentTrack) {
+        ytPlayer.loadVideoById(currentTrack.youtubeId);
+        dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true } });
+    } else if (ytPlayer && !currentTrack) {
+        ytPlayer.stopVideo();
+        dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false } });
     }
     
-    if (player) {
+    if (ytPlayer) {
       progressInterval = setInterval(() => {
-        const progress = player.getCurrentTime ? player.getCurrentTime() : 0;
-        const duration = player.getDuration ? player.getDuration() : 0;
+        const progress = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
+        const duration = ytPlayer.getDuration ? ytPlayer.getDuration() : 0;
         dispatch({ type: 'SET_PLAYER_STATE', payload: { progress, duration } });
       }, 500);
     }
@@ -78,7 +79,7 @@ export function GlobalPlayer() {
         if (progressInterval) clearInterval(progressInterval);
     };
 
-  }, [currentTrack, playerRef, dispatch]);
+  }, [currentTrack, ytPlayer, dispatch]);
 
 
   return (
