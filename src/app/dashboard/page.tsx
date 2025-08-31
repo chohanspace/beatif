@@ -135,38 +135,43 @@ function BeatifApp() {
 
 export default function DashboardPage() {
   const { status: sessionStatus } = useSession();
-  const { loggedInUser, setLoggedInUser } = useApp(); // Custom JWT auth state
+  const { loggedInUser, setLoggedInUser } = useApp();
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-      const storedUserStr = typeof window !== 'undefined' ? localStorage.getItem('loggedInUser') : null;
-      if (storedUserStr) {
-        try {
-          const user = JSON.parse(storedUserStr);
-          if (user && !loggedInUser) {
-            setLoggedInUser(user);
-          }
-        } catch (e) {
-          console.error("Failed to parse user from local storage", e);
-        }
+    // This effect now correctly handles the initial auth check.
+    // It waits for the session status to be determined AND checks for the presence of a user
+    // loaded from localStorage by the AppContext.
+    
+    // First, attempt to load user from localStorage if not already present in context.
+    const storedUserStr = typeof window !== 'undefined' ? localStorage.getItem('loggedInUser') : null;
+    if (storedUserStr && !loggedInUser) {
+      try {
+        const user = JSON.parse(storedUserStr);
+        setLoggedInUser(user);
+      } catch (e) {
+        console.error("Failed to parse user from local storage", e);
       }
-
-      // Authentication check is now more robust
-      if (sessionStatus !== 'loading') {
-          const authStatus = sessionStatus === 'authenticated' || !!loggedInUser;
-          setIsAuthenticated(authStatus);
-      }
+    }
+    
+    // Once session status is no longer loading, determine the final auth state.
+    if (sessionStatus !== 'loading') {
+      const authStatus = sessionStatus === 'authenticated' || !!loggedInUser;
+      setIsAuthenticated(authStatus);
+    }
   }, [sessionStatus, loggedInUser, setLoggedInUser]);
 
   useEffect(() => {
-    // Only redirect when authentication status has been definitively determined.
+    // This effect handles the redirect based on the final, determined auth state.
+    // It only runs when `isAuthenticated` changes from its initial `null` state.
     if (isAuthenticated === false) {
       router.push('/');
     }
   }, [isAuthenticated, router]);
 
-  // While we determine the auth state, show a loader.
+  // While we determine the auth state (isAuthenticated is null), show a loader.
+  // This prevents the flicker and premature redirect.
   if (isAuthenticated === null) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -183,6 +188,7 @@ export default function DashboardPage() {
     return <BeatifApp />;
   }
 
-  // If not authenticated, we've already started the redirect, so return null to avoid flashing any content.
+  // If not authenticated, the redirect has already been triggered.
+  // Return null to avoid rendering anything while the browser navigates.
   return null;
 }

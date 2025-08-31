@@ -92,7 +92,7 @@ export default function AuthPage() {
     const { success, message, user, token, requiresVerification } = await login(data.email, data.password);
     
     if (success && user && token) {
-        setLoggedInUser(user); // This will trigger the context provider to save to localStorage
+        setLoggedInUser(user);
         toast({ title: 'Success!', description: 'You are now logged in.' });
         router.push('/dashboard');
     } else {
