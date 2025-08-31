@@ -122,16 +122,31 @@ function BeatifApp() {
 }
 
 export default function Home() {
-  const { status } = useSession();
+  const { status: sessionStatus } = useSession();
+  const { loggedInUser } = useApp(); // Custom JWT auth state
   const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    // We are no longer loading when session status is determined AND our custom context has loaded the user.
+    const isLoading = sessionStatus === 'loading' && !loggedInUser;
+    
+    if (!isLoading) {
+      // User is authenticated if next-auth says so OR if our custom JWT user exists.
+      const auth = sessionStatus === 'authenticated' || !!loggedInUser;
+      setIsAuthenticated(auth);
+    }
+  }, [sessionStatus, loggedInUser]);
+
+  useEffect(() => {
+    // Only redirect when authentication status has been definitively determined.
+    if (isAuthenticated === false) {
       router.push('/login');
     }
-  }, [status, router]);
+  }, [isAuthenticated, router]);
 
-  if (status === 'loading') {
+  // While we determine the auth state, show a loader.
+  if (isAuthenticated === null) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -142,9 +157,11 @@ export default function Home() {
     );
   }
 
-  if (status === 'authenticated') {
+  // If authenticated, show the app.
+  if (isAuthenticated) {
     return <BeatifApp />;
   }
 
+  // If not authenticated, we've already started the redirect, so return null to avoid flashing any content.
   return null;
 }
