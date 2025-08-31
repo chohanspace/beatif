@@ -66,12 +66,6 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      router.push('/');
-    }
-  }, [status, router]);
-
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
@@ -253,5 +247,3 @@ export default function LoginPage() {
     </>
   );
 }
-
-    
