@@ -17,18 +17,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useApp } from '@/context/app-context';
 import { useToast } from '@/hooks/use-toast';
+import { Star } from 'lucide-react';
 
 interface AddToPlaylistDialogProps {
   onSave: (name: string) => void;
   onSelectPlaylist?: (playlistId: string) => void;
+  onQuickAdd?: () => void; // For adding to default playlist
   triggerButton: React.ReactElement;
 }
 
-export function AddToPlaylistDialog({ onSave, onSelectPlaylist, triggerButton }: AddToPlaylistDialogProps) {
+export function AddToPlaylistDialog({ onSave, onSelectPlaylist, onQuickAdd, triggerButton }: AddToPlaylistDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [view, setView] = useState<'select' | 'create'>('select');
-  const { playlists } = useApp();
+  const { playlists, defaultPlaylistId } = useApp();
   const { toast } = useToast();
 
   const handleSave = () => {
@@ -49,9 +51,18 @@ export function AddToPlaylistDialog({ onSave, onSelectPlaylist, triggerButton }:
     }
   }
 
+  const handleTriggerClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onQuickAdd) {
+      onQuickAdd();
+    } else {
+      setIsOpen(true);
+    }
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild onClick={(e) => e.stopPropagation()}>
+      <DialogTrigger asChild onClick={handleTriggerClick}>
         {triggerButton}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => e.preventDefault()}>
@@ -63,7 +74,10 @@ export function AddToPlaylistDialog({ onSave, onSelectPlaylist, triggerButton }:
             </DialogHeader>
             <div className="grid gap-2 py-4 max-h-64 overflow-y-auto">
               {playlists.map(p => (
-                <Button key={p.id} variant="ghost" onClick={() => handleSelect(p.id, p.name)}>{p.name}</Button>
+                <Button key={p.id} variant="ghost" onClick={() => handleSelect(p.id, p.name)} className="justify-between">
+                  {p.name}
+                  {p.id === defaultPlaylistId && <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />}
+                </Button>
               ))}
             </div>
             <DialogFooter>

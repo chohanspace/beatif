@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -7,13 +8,15 @@ import { useApp } from '@/context/app-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { AddToPlaylistDialog } from './add-to-playlist-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface TrackCardProps {
   track: Track;
 }
 
 export default function TrackCard({ track }: TrackCardProps) {
-  const { dispatch } = useApp();
+  const { dispatch, defaultPlaylistId, playlists } = useApp();
+  const { toast } = useToast();
 
   const handlePlay = () => {
     dispatch({ type: 'SET_CURRENT_TRACK', payload: track });
@@ -21,6 +24,14 @@ export default function TrackCard({ track }: TrackCardProps) {
   
   const handleAddToPlaylist = (playlistId: string) => {
     dispatch({ type: 'ADD_TRACK_TO_PLAYLIST', payload: { playlistId, track } });
+  }
+  
+  const handleQuickAdd = () => {
+    if (defaultPlaylistId) {
+      dispatch({ type: 'ADD_TRACK_TO_PLAYLIST', payload: { playlistId: defaultPlaylistId, track } });
+      const playlist = playlists.find(p => p.id === defaultPlaylistId);
+      toast({ title: 'Track Added', description: `Added to "${playlist?.name || 'your default playlist'}".` });
+    }
   }
 
   const handleCreateAndAddToPlaylist = (name: string) => {
@@ -56,6 +67,7 @@ export default function TrackCard({ track }: TrackCardProps) {
             <AddToPlaylistDialog 
               onSave={(name) => handleCreateAndAddToPlaylist(name)} 
               onSelectPlaylist={(id) => handleAddToPlaylist(id)}
+              onQuickAdd={defaultPlaylistId ? handleQuickAdd : undefined}
               triggerButton={
                 <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground -mr-2">
                     <Plus className="h-5 w-5" />

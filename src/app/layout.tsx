@@ -1,7 +1,9 @@
+
 import type { Metadata } from 'next';
 import { AppProvider } from '@/context/app-context';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: 'Beatif',
@@ -28,6 +30,7 @@ export default function RootLayout({
             {children}
             <Toaster />
         </AppProvider>
+        <Script src="https://www.youtube.com/iframe_api" strategy="beforeInteractive" />
       </body>
     </html>
   );

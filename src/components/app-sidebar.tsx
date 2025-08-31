@@ -2,7 +2,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from 'react';
-import { Home, Music, ListMusic, Plus, Library, LogOut, Settings } from 'lucide-react';
+import { Home, Music, ListMusic, Plus, Library, LogOut, Settings, MoreHorizontal, Edit, Trash2, Star } from 'lucide-react';
 import { useApp } from '@/context/app-context';
 import type { View } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -17,9 +17,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent
 } from "@/components/ui/dropdown-menu"
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from './ui/sidebar';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 interface AppSidebarProps {
   view: View;
@@ -27,8 +31,9 @@ interface AppSidebarProps {
 }
 
 export default function AppSidebar({ view, setView }: AppSidebarProps) {
-  const { playlists, dispatch, loggedInUser, setLoggedInUser } = useApp();
+  const { playlists, dispatch, loggedInUser, setLoggedInUser, defaultPlaylistId } = useApp();
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleCreatePlaylist = (name: string) => {
     dispatch({ type: 'CREATE_PLAYLIST', payload: { name, tracks: [] } });
@@ -46,6 +51,29 @@ export default function AppSidebar({ view, setView }: AppSidebarProps) {
     setView({ type: 'settings' });
   };
   
+  const handleRenamePlaylist = (id: string) => {
+    const newName = prompt('Enter new playlist name:');
+    if (newName && newName.trim()) {
+        dispatch({ type: 'RENAME_PLAYLIST', payload: { id, newName: newName.trim() } });
+        toast({ title: "Playlist Renamed", description: `Renamed to "${newName.trim()}".` });
+    }
+  }
+
+  const handleDeletePlaylist = (id: string, name: string) => {
+    if (confirm(`Are you sure you want to delete the playlist "${name}"?`)) {
+        dispatch({ type: 'DELETE_PLAYLIST', payload: { id } });
+        toast({ title: "Playlist Deleted", description: `"${name}" has been deleted.` });
+        if (view.type === 'playlist' && view.playlistId === id) {
+            setView({ type: 'discover' });
+        }
+    }
+  }
+
+  const handleSetDefaultPlaylist = (id: string) => {
+    dispatch({ type: 'SET_DEFAULT_PLAYLIST', payload: { id } });
+    toast({ title: 'Default Playlist Set' });
+  }
+
   if (!loggedInUser) return null;
 
   return (
@@ -117,8 +145,31 @@ export default function AppSidebar({ view, setView }: AppSidebarProps) {
                             tooltip={playlist.name}
                         >
                             <ListMusic />
-                            <span>{playlist.name}</span>
+                            <span className="flex-1">{playlist.name}</span>
+                             {playlist.id === defaultPlaylistId && <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />}
                         </SidebarMenuButton>
+                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                 <Button variant="ghost" size="icon" className="absolute right-1 top-1 h-7 w-7">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleRenamePlaylist(playlist.id)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    <span>Rename</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeletePlaylist(playlist.id, playlist.name)}>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Delete</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleSetDefaultPlaylist(playlist.id)} disabled={playlist.id === defaultPlaylistId}>
+                                    <Star className="mr-2 h-4 w-4" />
+                                    <span>Set as Default</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                      </SidebarMenuItem>
                 ))}
             </SidebarMenu>
