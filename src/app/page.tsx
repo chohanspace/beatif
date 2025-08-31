@@ -22,22 +22,18 @@ import { useSession } from 'next-auth/react';
 
 function BeatifApp() {
   const { currentTrack, loggedInUser, setLoggedInUser } = useApp();
-  const { status } = useSession();
   const [view, setView] = useState<View>({ type: 'discover' });
   const [showCountryDialog, setShowCountryDialog] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState('');
   const [countrySearch, setCountrySearch] = useState('');
   const [isSavingCountry, setIsSavingCountry] = useState(false);
-  const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    } else if (status === 'authenticated' && loggedInUser && !loggedInUser.country) {
+    if (loggedInUser && !loggedInUser.country) {
       setShowCountryDialog(true);
     }
-  }, [loggedInUser, status, router]);
+  }, [loggedInUser]);
   
   useEffect(() => {
     // When currentTrack changes, if we are not in the player view, show the player bar.
@@ -67,18 +63,6 @@ function BeatifApp() {
   };
   
   const filteredCountries = countries.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()));
-
-
-  if (status === 'loading' || !loggedInUser) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-            <div className="flex flex-col items-center gap-4">
-                <MusicalNotesLoader size="lg" />
-                <p className="text-muted-foreground">Authenticating...</p>
-            </div>
-        </div>
-    );
-  }
 
   return (
     <>
@@ -138,5 +122,29 @@ function BeatifApp() {
 }
 
 export default function Home() {
-  return <BeatifApp />;
+  const { status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
+
+  if (status === 'loading') {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <MusicalNotesLoader size="lg" />
+          <p className="text-muted-foreground">Authenticating...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'authenticated') {
+    return <BeatifApp />;
+  }
+
+  return null;
 }
