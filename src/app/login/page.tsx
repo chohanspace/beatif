@@ -56,7 +56,6 @@ export default function AuthPage() {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [isLoading, setIsLoading] = useState(false);
   const { setLoggedInUser } = useApp();
-  const { data: session, status } = useSession();
   const { toast } = useToast();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -173,7 +172,7 @@ export default function AuthPage() {
         <CardContent>
            <Button variant="outline" className="w-full" onClick={() => signIn('google', { callbackUrl: '/' })}>
                 <GoogleIcon className="mr-2 h-5 w-5" />
-                Sign in with Google
+                {isLogin ? 'Sign in with Google' : 'Sign up with Google'}
             </Button>
             <div className="my-4 flex items-center">
                 <Separator className="flex-1" />
