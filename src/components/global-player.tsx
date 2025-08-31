@@ -10,10 +10,15 @@ export function GlobalPlayer() {
 
   useEffect(() => {
     const onYouTubeIframeAPIReady = () => {
+      // Ensure YT and YT.Player are available before creating a new player
+      if (typeof window.YT === 'undefined' || typeof window.YT.Player === 'undefined') {
+        console.error('YouTube Player API not ready.');
+        return;
+      }
+
       const player = new (window as any).YT.Player('yt-player-iframe', {
         height: '100%',
         width: '100%',
-        // videoId is removed from initialization to prevent crash
         playerVars: {
           autoplay: 1,
           controls: 0,
@@ -41,7 +46,7 @@ export function GlobalPlayer() {
       });
     };
 
-    if (!(window as any).YT) {
+    if (!(window as any).YT || !(window as any).YT.Player) {
       (window as any).onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
     } else {
        onYouTubeIframeAPIReady();
