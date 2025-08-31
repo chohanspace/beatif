@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Dispatch, SetStateAction } from 'react';
@@ -35,6 +36,7 @@ export default function AppSidebar({ view, setView }: AppSidebarProps) {
     setLoggedInUser(null);
     if(typeof window !== 'undefined') {
         localStorage.removeItem('loggedInUser');
+        localStorage.removeItem('jwt');
     }
   }
   

@@ -71,20 +71,23 @@ export default function LoginPage() {
   async function onSubmit(data: z.infer<typeof loginSchema>) {
     setIsLoading(true);
     setLoginEmail(data.email);
-    const { success, message, user, requiresVerification } = await login(data.email, data.password);
+    const { success, message, user, token, requiresVerification } = await login(data.email, data.password);
     
-    if (success && user) {
+    if (success && user && token) {
         setLoggedInUser(user);
         if(typeof window !== 'undefined'){
             localStorage.setItem('loggedInUser', JSON.stringify(user));
+            localStorage.setItem('jwt', token);
         }
         toast({ title: 'Success!', description: 'You are now logged in.' });
         router.push('/');
     } else {
         setIsLoading(false);
-        toast({ variant: 'destructive', title: 'Login Failed', description: message });
         if(requiresVerification) {
+            toast({ variant: 'destructive', title: 'Verification Required', description: message });
             setShowOtpDialog(true);
+        } else {
+            toast({ variant: 'destructive', title: 'Login Failed', description: message });
         }
     }
   }
@@ -105,12 +108,14 @@ export default function LoginPage() {
   }
 
   async function handleResendOtp() {
+      if(resendCooldown > 0) return;
       setResendCooldown(30);
       const { success, message } = await resendSignUpOtp(loginEmail);
       if(success) {
           toast({ title: 'Code Sent', description: message });
       } else {
           toast({ variant: 'destructive', title: 'Error', description: message });
+          setResendCooldown(0); // Reset cooldown on error
       }
   }
 

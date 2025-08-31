@@ -116,6 +116,10 @@ function getEmailHtml(title: string, heading: string, body: string, footerText: 
 }
 
 async function sendEmail(to: string, subject: string, html: string) {
+    if (!process.env.GMAIL_EMAIL || !process.env.GMAIL_APP_PASSWORD) {
+        console.warn(`Email not sent to ${to} because GMAIL_EMAIL or GMAIL_APP_PASSWORD is not set.`);
+        return;
+    }
     try {
         const mailOptions = {
             from: `"Beatif" <${process.env.GMAIL_EMAIL}>`,
@@ -153,6 +157,30 @@ export async function sendPasswordResetEmail(to: string, otp: string) {
     <p class="info">This code will expire in 10 minutes. If you did not request this, you can safely ignore this email and your password will not be changed.</p>
   `;
   const footer = "This email was sent in response to a password reset request.";
+  const html = getEmailHtml(title, heading, body, footer);
+  await sendEmail(to, title, html);
+}
+
+export async function sendWelcomeEmail(to: string) {
+  const title = "Welcome to Beatif!";
+  const heading = "Welcome Aboard!";
+  const body = `
+    <p>Thank you for signing up for Beatif. We're excited to have you!</p>
+    <p>You can now log in to your account and start discovering new music.</p>
+  `;
+  const footer = "You're receiving this email because you just signed up for Beatif.";
+  const html = getEmailHtml(title, heading, body, footer);
+  await sendEmail(to, title, html);
+}
+
+export async function sendPasswordResetSuccessEmail(to: string) {
+  const title = "Your Password Has Been Changed";
+  const heading = "Password Updated Successfully";
+  const body = `
+    <p>This email confirms that the password for your Beatif account has been changed.</p>
+    <p>If you did not make this change, please contact our support team immediately.</p>
+  `;
+  const footer = "You're receiving this email because of a recent password change on your account.";
   const html = getEmailHtml(title, heading, body, footer);
   await sendEmail(to, title, html);
 }
