@@ -6,6 +6,8 @@ import type { Track, View } from '@/lib/types';
 import TrackCard from './track-card';
 import { MusicalNotesLoader } from './ui/gears-loader';
 import { useApp } from '@/context/app-context';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 interface DiscoverViewProps {
   setView: Dispatch<SetStateAction<View>>;
@@ -14,6 +16,7 @@ interface DiscoverViewProps {
 export default function DiscoverView({ setView }: DiscoverViewProps) {
   const [trendingTracks, setTrendingTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { loggedInUser } = useApp();
 
   useEffect(() => {
@@ -24,12 +27,21 @@ export default function DiscoverView({ setView }: DiscoverViewProps) {
 
     const fetchTrendingTracks = async () => {
       setIsLoading(true);
+      setError(null);
       try {
         const response = await fetch(`/api/trending/${encodeURIComponent(loggedInUser.country!)}`);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to fetch trending tracks');
+        }
+
         const data: Track[] = await response.json();
         setTrendingTracks(data);
-      } catch (error) {
-        console.error("Failed to fetch trending tracks:", error);
+
+      } catch (err: any) {
+        console.error("Failed to fetch trending tracks:", err);
+        setError(err.message);
       } finally {
         setIsLoading(false);
       }
@@ -54,6 +66,14 @@ export default function DiscoverView({ setView }: DiscoverViewProps) {
           <MusicalNotesLoader size="lg" />
           <p className="text-lg text-muted-foreground">Finding the hottest tracks...</p>
         </div>
+      ) : error ? (
+         <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+                {error}
+            </AlertDescription>
+        </Alert>
       ) : trendingTracks.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {trendingTracks.map((track) => (
