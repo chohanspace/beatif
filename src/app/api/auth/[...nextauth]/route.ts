@@ -16,8 +16,6 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async session({ session, user }: any) {
-      // The user object here is the one from the database, thanks to the adapter.
-      // We can add the user's ID and other custom fields to the session object.
       if (session.user) {
         session.user.id = user.id;
         const userFromDb = await getUser(session.user.email);
