@@ -36,7 +36,7 @@ export function GlobalPlayer() {
           onStateChange: (event: any) => {
             const YT = (window as any).YT;
             if (event.data === YT.PlayerState.PLAYING) {
-              dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true, duration: event.target.getDuration() }});
+              dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true, duration: ytPlayer?.getDuration() || 0 }});
             } else if (event.data === YT.PlayerState.PAUSED) {
               dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false }});
             } else if (event.data === YT.PlayerState.ENDED) {
@@ -51,16 +51,18 @@ export function GlobalPlayer() {
       (window as any).onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
     }
 
-    if ((window as any).YT && (window as any).YT.Player) {
+    if ((window as any).YT && (window as any).YT.Player && !ytPlayer) {
        onYouTubeIframeAPIReady();
     }
-  }, [setYtPlayer, dispatch, controls]);
+  }, [setYtPlayer, dispatch, controls, ytPlayer]);
 
   useEffect(() => {
     let progressInterval: NodeJS.Timeout;
     
     if (ytPlayer && currentTrack) {
-        ytPlayer.loadVideoById(currentTrack.youtubeId);
+        if(ytPlayer.getVideoData()?.video_id !== currentTrack.youtubeId) {
+            ytPlayer.loadVideoById(currentTrack.youtubeId);
+        }
         dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true } });
     } else if (ytPlayer && !currentTrack) {
         ytPlayer.stopVideo();
