@@ -32,6 +32,7 @@ export default function PlayerView({ setView }: PlayerViewProps) {
   } = useApp();
   const { toast } = useToast();
   
+  // Local state for the slider to provide a smooth UX while dragging
   const [sliderValue, setSliderValue] = useState([0]);
   const [isSeeking, setIsSeeking] = useState(false);
 
@@ -43,6 +44,7 @@ export default function PlayerView({ setView }: PlayerViewProps) {
   }, [currentTrack, setView]);
   
   useEffect(() => {
+      // Update the slider's position based on real progress, but only if the user is not actively seeking.
       if (!isSeeking) {
         setSliderValue([playerState.progress]);
       }
@@ -70,11 +72,13 @@ export default function PlayerView({ setView }: PlayerViewProps) {
   }
   
   const handleSliderValueChange = (value: number[]) => {
+      // When the user drags the slider, update the local state to move the thumb
       setIsSeeking(true);
       setSliderValue(value);
   }
   
   const handleSliderCommit = (value: number[]) => {
+      // When the user releases the slider, send the seek command and stop local tracking
       if(controls.seek) {
         controls.seek(value[0]);
       }

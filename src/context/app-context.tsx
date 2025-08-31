@@ -156,8 +156,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             return { playlist, trackIndex };
         }
     }
+    // Also check if the current track itself is the one (e.g. from search)
+    if (state.currentTrack?.youtubeId === trackId) {
+        return { playlist: { id: 'search', name: 'Search Results', tracks: [state.currentTrack] }, trackIndex: 0 };
+    }
     return { playlist: null, trackIndex: -1 };
-  }, [state.playlists]);
+  }, [state.playlists, state.currentTrack]);
   
   const playNext = useCallback(() => {
     if (!state.currentTrack) return;
@@ -179,17 +183,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [state.currentTrack, state.playerState.progress, ytPlayer, findTrackInPlaylists, dispatch]);
   
+  const togglePlay = useCallback(() => {
+    if (!ytPlayer) return;
+    if (state.playerState.isPlaying) {
+      ytPlayer.pauseVideo();
+    } else {
+      ytPlayer.playVideo();
+    }
+  }, [ytPlayer, state.playerState.isPlaying]);
+
+
   const controls: PlayerControls = {
     play: () => ytPlayer?.playVideo(),
     pause: () => ytPlayer?.pauseVideo(),
-    togglePlay: () => {
-        if (!ytPlayer) return;
-        if (state.playerState.isPlaying) {
-            ytPlayer.pauseVideo();
-        } else {
-            ytPlayer.playVideo();
-        }
-    },
+    togglePlay,
     seek: (time: number) => ytPlayer?.seekTo(time, true),
     playNext,
     playPrev,
@@ -205,6 +212,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return !!playlist && trackIndex > 0;
     },
   };
+
+  useEffect(() => {
+    let progressInterval: NodeJS.Timeout | null = null;
+    if (state.playerState.isPlaying && ytPlayer) {
+      progressInterval = setInterval(() => {
+        const progress = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
+        if (progress !== state.playerState.progress) {
+          dispatch({ type: 'SET_PLAYER_STATE', payload: { progress } });
+        }
+      }, 500);
+    }
+    return () => {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+    };
+  }, [state.playerState.isPlaying, ytPlayer, state.playerState.progress]);
+
 
   // Handle user state from both next-auth session and our custom JWT
   useEffect(() => {
