@@ -143,7 +143,7 @@ export default function LoginPage() {
           <CardDescription>Enter your email and password to access your account.</CardDescription>
         </CardHeader>
         <CardContent>
-           <Button variant="outline" className="w-full" onClick={() => signIn('google', { callbackUrl: '/' })}>
+           <Button variant="outline" className="w-full" onClick={() => signIn('google', { callbackUrl: '/api/auth/callback/google' })}>
                 <GoogleIcon className="mr-2 h-5 w-5" />
                 Sign in with Google
             </Button>
@@ -253,3 +253,5 @@ export default function LoginPage() {
     </>
   );
 }
+
+    
