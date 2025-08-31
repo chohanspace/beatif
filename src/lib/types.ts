@@ -16,6 +16,8 @@ export interface Playlist {
 export interface User {
   id:string; // email
   email: string;
+  name?: string;
+  image?: string;
   password?: string;
   createdAt: number;
   isVerified?: boolean;

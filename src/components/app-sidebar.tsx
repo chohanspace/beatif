@@ -4,7 +4,7 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { Home, Music, ListMusic, Plus, Library, LogOut, Settings, MoreHorizontal, Edit, Trash2, Star, Sun, Moon } from 'lucide-react';
 import { useApp } from '@/context/app-context';
-import type { View } from '@/lib/types';
+import type { View, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { AddToPlaylistDialog } from '@/components/add-to-playlist-dialog';
@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { signOut, useSession } from 'next-auth/react';
 
 
 interface AppSidebarProps {
@@ -40,6 +41,7 @@ interface AppSidebarProps {
 
 export default function AppSidebar({ view, setView }: AppSidebarProps) {
   const { playlists, dispatch, loggedInUser, setLoggedInUser, defaultPlaylistId, theme, setTheme } = useApp();
+  const { data: session } = useSession();
   const { toast } = useToast();
 
   const handleCreatePlaylist = (name: string) => {
@@ -47,6 +49,9 @@ export default function AppSidebar({ view, setView }: AppSidebarProps) {
   };
   
   const handleLogout = () => {
+    if (session) {
+      signOut({ callbackUrl: '/login' });
+    }
     setLoggedInUser(null);
     if(typeof window !== 'undefined') {
         localStorage.removeItem('loggedInUser');
@@ -88,6 +93,10 @@ export default function AppSidebar({ view, setView }: AppSidebarProps) {
 
   if (!loggedInUser) return null;
 
+  const userImage = loggedInUser.image || `https://api.dicebear.com/8.x/bottts/svg?seed=${loggedInUser.email}`;
+  const userName = loggedInUser.name || loggedInUser.email;
+
+
   return (
     <Sidebar collapsible="icon" className="border-r">
         <SidebarHeader>
@@ -100,15 +109,15 @@ export default function AppSidebar({ view, setView }: AppSidebarProps) {
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                             <Avatar className="h-8 w-8">
-                                <AvatarImage src={`https://api.dicebear.com/8.x/bottts/svg?seed=${loggedInUser.email}`} alt={loggedInUser.email} />
-                                <AvatarFallback>{loggedInUser.email.charAt(0).toUpperCase()}</AvatarFallback>
+                                <AvatarImage src={userImage} alt={userName} />
+                                <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
                             </Avatar>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56" align="end" forceMount>
                         <DropdownMenuLabel className="font-normal">
                             <div className="flex flex-col space-y-1">
-                                <p className="text-sm font-medium leading-none">Logged in as</p>
+                                <p className="text-sm font-medium leading-none">{userName}</p>
                                 <p className="text-xs leading-none text-muted-foreground truncate">{loggedInUser.email}</p>
                             </div>
                         </DropdownMenuLabel>

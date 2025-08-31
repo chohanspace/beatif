@@ -4,6 +4,8 @@
 import React, { createContext, useContext, useReducer, useEffect, type ReactNode, useState } from 'react';
 import type { Track, Playlist, User } from '@/lib/types';
 import { saveUser } from '@/lib/auth';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 type Theme = 'light' | 'dark';
 
@@ -101,6 +103,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
   const initialState: AppState = {
     playlists: [],
@@ -111,14 +115,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   
   const [state, dispatch] = useReducer(appReducer, initialState);
   
-  // Load user from local storage on initial app load
+  // Handle user state from both next-auth session and our custom JWT
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      setLoggedInUser(session.user as User);
+    } else {
+      try {
+        const storedUser = localStorage.getItem('loggedInUser');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          setLoggedInUser(user);
+        }
+      } catch (error) {
+        console.error("Could not load user from localStorage", error);
+      }
+    }
+  }, [session, status]);
+
+
+  // Load theme from local storage on initial app load
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem('loggedInUser');
-      if(storedUser) {
-        const user = JSON.parse(storedUser);
-        setLoggedInUser(user);
-      }
       const storedTheme = localStorage.getItem('theme') as Theme | null;
       if (storedTheme) {
         dispatch({ type: 'SET_THEME', payload: storedTheme });
@@ -128,7 +145,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_THEME', payload: prefersDark ? 'dark' : 'light' });
       }
     } catch (error) {
-      console.error("Could not load data from localStorage", error);
+      console.error("Could not load theme from localStorage", error);
     }
   }, []);
 
@@ -172,7 +189,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         saveUser(updatedUser).then(() => {
             // Also update the state in the provider and local storage
             setLoggedInUser(updatedUser);
-            if(typeof window !== "undefined") {
+            if(typeof window !== "undefined" && !session?.user) { // Only use localStorage for non-google auth
               localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
             }
         }).catch(err => console.error("Failed to save user state:", err));
