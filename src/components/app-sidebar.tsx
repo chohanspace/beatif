@@ -53,7 +53,7 @@ export default function AppSidebar({ view, setView }: AppSidebarProps) {
   const handleLogout = () => {
     if (session) {
       // For Google users, signOut will handle redirection
-      signOut({ callbackUrl: '/' });
+      signOut({ callbackUrl: '/login' });
     } else {
       // For email/password users, manually clear state and redirect
       if(typeof window !== 'undefined') {
@@ -61,7 +61,7 @@ export default function AppSidebar({ view, setView }: AppSidebarProps) {
           localStorage.removeItem('jwt');
       }
       setLoggedInUser(null);
-      router.push('/');
+      router.push('/login');
     }
   }
 

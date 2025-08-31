@@ -10,12 +10,9 @@ export function GlobalPlayer() {
 
   useEffect(() => {
     const onYouTubeIframeAPIReady = () => {
-      if (typeof window.YT === 'undefined' || typeof window.YT.Player === 'undefined') {
-        console.error('YouTube Player API not ready.');
+      if (typeof window.YT === 'undefined' || typeof window.YT.Player === 'undefined' || isReady.current) {
         return;
       }
-
-      if (isReady.current) return;
 
       const player = new (window as any).YT.Player('yt-player-iframe', {
         height: '100%',
@@ -37,7 +34,8 @@ export function GlobalPlayer() {
           onStateChange: (event: any) => {
             const YT = (window as any).YT;
             if (event.data === YT.PlayerState.PLAYING) {
-              dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true, duration: ytPlayer?.getDuration() || 0 }});
+              const duration = event.target.getDuration ? event.target.getDuration() : 0;
+              dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true, duration }});
             } else if (event.data === YT.PlayerState.PAUSED) {
               dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false }});
             } else if (event.data === YT.PlayerState.ENDED) {
@@ -53,6 +51,7 @@ export function GlobalPlayer() {
       (window as any).onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
     }
 
+    // If the API is already loaded, and we don't have a player, create it.
     if ((window as any).YT?.Player && !ytPlayer) {
        onYouTubeIframeAPIReady();
     }
@@ -72,21 +71,22 @@ export function GlobalPlayer() {
 
   useEffect(() => {
     let progressInterval: NodeJS.Timeout | null = null;
+
     if (playerState.isPlaying && ytPlayer) {
-        progressInterval = setInterval(() => {
-            const progress = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
-            if (progress !== playerState.progress) {
-                dispatch({ type: 'SET_PLAYER_STATE', payload: { progress } });
-            }
-        }, 500);
-    } 
-    
-    return () => {
-        if (progressInterval) {
-            clearInterval(progressInterval);
+      progressInterval = setInterval(() => {
+        const progress = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
+        if (progress !== playerState.progress) {
+          dispatch({ type: 'SET_PLAYER_STATE', payload: { progress } });
         }
+      }, 500);
+    }
+
+    return () => {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
     };
-  }, [playerState.isPlaying, ytPlayer, dispatch, playerState.progress]);
+  }, [playerState.isPlaying, ytPlayer, dispatch]); // Removed playerState.progress to avoid re-running interval constantly
 
 
   return (

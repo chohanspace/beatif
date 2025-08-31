@@ -61,7 +61,7 @@ export default function ForgotPasswordPage() {
     const { success, message } = await resetPasswordWithOtp(email, data.otp, data.newPassword);
     if (success) {
       toast({ title: 'Success!', description: message });
-      router.push('/');
+      router.push('/login');
     } else {
       toast({ variant: 'destructive', title: 'Password Reset Failed', description: message });
     }
@@ -155,7 +155,7 @@ export default function ForgotPasswordPage() {
           )}
         </CardContent>
          <CardFooter className="text-sm text-center block">
-          Remember your password? <Link href="/" className="underline">Log in</Link>
+          Remember your password? <Link href="/login" className="underline">Log in</Link>
         </CardFooter>
       </Card>
     </div>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -26,11 +27,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 
-const loginSchema = z.object({
-  email: z.string().email('Invalid email address.'),
-  password: z.string().min(1, 'Password is required.'),
-});
-
 const signupSchema = z.object({
   email: z.string().email('Invalid email address.'),
   password: z.string().min(8, 'Password must be at least 8 characters.'),
@@ -51,11 +47,8 @@ function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-export default function AuthPage() {
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const { setLoggedInUser } = useApp();
-  const { data: session, status } = useSession();
   const { toast } = useToast();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -70,11 +63,6 @@ export default function AuthPage() {
     }
     return () => clearTimeout(timer);
   }, [resendCooldown]);
-
-  const loginForm = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
-  });
   
   const signupForm = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
@@ -85,30 +73,6 @@ export default function AuthPage() {
     resolver: zodResolver(otpSchema),
     defaultValues: { otp: '' },
   })
-
-  async function onLoginSubmit(data: z.infer<typeof loginSchema>) {
-    setIsLoading(true);
-    setActionEmail(data.email);
-    const { success, message, user, token, requiresVerification } = await login(data.email, data.password);
-    
-    if (success && user && token) {
-        if(typeof window !== 'undefined'){
-            localStorage.setItem('loggedInUser', JSON.stringify(user));
-            localStorage.setItem('jwt', token);
-        }
-        setLoggedInUser(user);
-        toast({ title: 'Success!', description: 'You are now logged in.' });
-        router.push('/');
-    } else {
-        setIsLoading(false);
-        if(requiresVerification) {
-            toast({ variant: 'destructive', title: 'Verification Required', description: message });
-            setShowOtpDialog(true);
-        } else {
-            toast({ variant: 'destructive', title: 'Login Failed', description: message });
-        }
-    }
-  }
 
   async function onSignupSubmit(data: z.infer<typeof signupSchema>) {
     setIsLoading(true);
@@ -131,14 +95,7 @@ export default function AuthPage() {
       if(success) {
         toast({ title: 'Success!', description: message });
         setShowOtpDialog(false);
-        // If they were signing up, switch to login view
-        if(authMode === 'signup') {
-            setAuthMode('login');
-        } else {
-            // If they were logging in, try logging in again
-            const loginData = loginForm.getValues();
-            await onLoginSubmit(loginData);
-        }
+        router.push('/login');
       } else {
         toast({ variant: 'destructive', title: 'Verification Failed', description: message });
       }
@@ -157,22 +114,18 @@ export default function AuthPage() {
       }
   }
 
-  const isLogin = authMode === 'login';
-
   return (
     <>
     <div className="flex justify-center items-center h-screen bg-background">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{isLogin ? 'Login' : 'Create an Account'}</CardTitle>
-          <CardDescription>
-            {isLogin ? 'Enter your details to access your account.' : 'Sign up to start your musical journey.'}
-          </CardDescription>
+          <CardTitle>Create an Account</CardTitle>
+          <CardDescription>Sign up to start your musical journey.</CardDescription>
         </CardHeader>
         <CardContent>
-           <Button variant="outline" className="w-full" onClick={() => signIn('google', { callbackUrl: '/' })}>
+           <Button variant="outline" className="w-full" onClick={() => signIn('google', { callbackUrl: '/dashboard' })}>
                 <GoogleIcon className="mr-2 h-5 w-5" />
-                Sign in with Google
+                Sign up with Google
             </Button>
             <div className="my-4 flex items-center">
                 <Separator className="flex-1" />
@@ -180,76 +133,39 @@ export default function AuthPage() {
                 <Separator className="flex-1" />
             </div>
             
-            {isLogin ? (
-                <Form {...loginForm}>
-                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6">
-                        <FormField control={loginForm.control} name="email" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl><Input placeholder="you@example.com" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                        <FormField control={loginForm.control} name="password" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Password</FormLabel>
-                                <FormControl>
-                                    <div className="relative">
-                                        <Input type={showPassword ? "text" : "password"} placeholder="********" {...field} />
-                                        <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full px-3" onClick={() => setShowPassword(p => !p)}>
-                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                        </Button>
-                                    </div>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                        <div className="text-sm text-right">
-                            <Link href="/forgot-password"className="underline">Forgot Password?</Link>
-                        </div>
-                        <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading && <MusicalNotesLoader className="mr-2" size="sm" />}
-                            Login
-                        </Button>
-                    </form>
-                </Form>
-            ) : (
-                <Form {...signupForm}>
-                    <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-6">
-                        <FormField control={signupForm.control} name="email" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl><Input placeholder="you@example.com" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                        <FormField control={signupForm.control} name="password" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Password</FormLabel>
-                                <FormControl>
-                                    <div className="relative">
-                                        <Input type={showPassword ? "text" : "password"} placeholder="At least 8 characters" {...field} />
-                                        <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full px-3" onClick={() => setShowPassword(p => !p)}>
-                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                        </Button>
-                                    </div>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                        <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading && <MusicalNotesLoader className="mr-2" size="sm" />}
-                            Create Account
-                        </Button>
-                    </form>
-                </Form>
-            )}
+            <Form {...signupForm}>
+                <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-6" key="signup-form">
+                    <FormField control={signupForm.control} name="email" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl><Input placeholder="you@example.com" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
+                    <FormField control={signupForm.control} name="password" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                                <div className="relative">
+                                    <Input type={showPassword ? "text" : "password"} placeholder="At least 8 characters" {...field} />
+                                    <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full px-3" onClick={() => setShowPassword(p => !p)}>
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </Button>
+                                </div>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading && <MusicalNotesLoader className="mr-2" size="sm" />}
+                        Create Account
+                    </Button>
+                </form>
+            </Form>
         </CardContent>
         <CardFooter className="text-sm text-center block">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
-          <Button variant="link" className="p-0 h-auto" onClick={() => setAuthMode(isLogin ? 'signup' : 'login')}>
-            {isLogin ? 'Sign up' : 'Log in'}
-          </Button>
+          Already have an account?{' '}
+          <Link href="/login" className="underline">Log in</Link>
         </CardFooter>
       </Card>
     </div>
