@@ -74,11 +74,11 @@ export default function LoginPage() {
     const { success, message, user, token, requiresVerification } = await login(data.email, data.password);
     
     if (success && user && token) {
-        setLoggedInUser(user);
         if(typeof window !== 'undefined'){
             localStorage.setItem('loggedInUser', JSON.stringify(user));
             localStorage.setItem('jwt', token);
         }
+        setLoggedInUser(user);
         toast({ title: 'Success!', description: 'You are now logged in.' });
         router.push('/');
     } else {

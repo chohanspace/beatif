@@ -5,7 +5,7 @@ import clientPromise from './mongodb';
 import { sendOtpEmail, sendPasswordResetEmail, sendWelcomeEmail, sendPasswordResetSuccessEmail } from './email';
 import type { User } from './types';
 import { randomInt } from 'crypto';
-import type { Collection, Document, WithId } from 'mongodb';
+import type { Collection, Document, WithId, ObjectId } from 'mongodb';
 import jwt from 'jsonwebtoken';
 
 // Placeholder for password hashing. In a real app, use a strong library like bcrypt.
@@ -62,7 +62,9 @@ export async function signUp(email: string, password: string): Promise<{ success
       createdAt: Date.now(),
       isVerified: false,
       otp,
-      otpExpires
+      otpExpires,
+      playlists: [],
+      defaultPlaylistId: null,
     };
     
     await users.insertOne(userToSave);
@@ -122,7 +124,9 @@ export async function login(email: string, password: string): Promise<{ success:
     }
 
     const { password: _password, otp: _otp, otpExpires: _otpExpires, _id, ...userToReturn } = userDoc;
+    // Ensure id is a string
     const userPayload = { ...userToReturn, id: _id.toString() };
+
     const token = generateToken(userPayload);
 
 
@@ -224,6 +228,8 @@ export async function createUserAsAdmin(email: string, password: string): Promis
       password: hashedPassword,
       createdAt: Date.now(),
       isVerified: true, // Automatically verify admin-created users
+      playlists: [],
+      defaultPlaylistId: null,
     };
 
     await users.insertOne(newUser);
@@ -241,16 +247,16 @@ export async function getAllUsers(): Promise<User[]> {
     const usersCollection = await getUsersCollection();
     const users = await usersCollection.find({}).toArray();
     // Convert MongoDB documents to plain objects
-    return users.map((userDoc) => {
-        const { _id, ...user } = userDoc;
+    return users.map((doc) => {
+        const { _id, ...user } = doc as WithId<User>;
         return { ...user, id: _id.toString() } as User;
     });
 }
 
-export async function saveUser(user: User & { _id?: any }): Promise<void> {
+export async function saveUser(user: User): Promise<void> {
     const usersCollection = await getUsersCollection();
-    // Prevent trying to update the immutable _id field
-    const { id, _id, ...userToSave } = user;
+    // Prevent trying to update the immutable _id field and ensure the 'id' string field isn't saved to mongo
+    const { id, ...userToSave } = user;
     await usersCollection.updateOne({ email: user.email }, { $set: userToSave }, { upsert: true });
 }
 
@@ -261,10 +267,10 @@ export async function deleteUser(email: string): Promise<void> {
 
 export async function getUser(email: string): Promise<User | null> {
     const usersCollection = await getUsersCollection();
-    const user = await usersCollection.findOne({ email });
-    if (user) {
-        const { _id, ...rest } = user;
-        return { ...rest, id: _id.toString() } as User;
+    const userDoc = await usersCollection.findOne({ email });
+    if (userDoc) {
+        const { _id, ...rest } = userDoc as WithId<User>;
+        return { ...rest, id: _id.toString() };
     }
     return null;
 }

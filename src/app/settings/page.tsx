@@ -45,9 +45,6 @@ export default function SettingsPage() {
     const updatedUser: User = { ...loggedInUser, country: selectedCountry };
     await saveUser(updatedUser);
     setLoggedInUser(updatedUser);
-     if (typeof window !== 'undefined') {
-        localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
-    }
     toast({ title: 'Country Updated', description: `Your location has been set to ${selectedCountry}.` });
     setIsSaving(false);
   };

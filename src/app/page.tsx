@@ -41,10 +41,7 @@ function BeatifApp() {
     setIsSavingCountry(true);
     const updatedUser: User = { ...loggedInUser, country: selectedCountry };
     await saveUser(updatedUser);
-    setLoggedInUser(updatedUser);
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
-    }
+    setLoggedInUser(updatedUser); // This will also update localStorage via the context
     toast({ title: "Preferences Saved", description: "Your country has been set." });
     setShowCountryDialog(false);
     setIsSavingCountry(false);

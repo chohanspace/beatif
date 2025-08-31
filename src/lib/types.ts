@@ -22,6 +22,8 @@ export interface User {
   otp?: string;
   otpExpires?: number;
   country?: string;
+  playlists?: Playlist[];
+  defaultPlaylistId?: string | null;
 }
 
 export type View =
