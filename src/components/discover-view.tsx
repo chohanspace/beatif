@@ -4,7 +4,7 @@
 import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
 import type { Track, View } from '@/lib/types';
 import TrackCard from './track-card';
-import { GearsLoader } from './ui/gears-loader';
+import { MusicalNotesLoader } from './ui/gears-loader';
 import { useApp } from '@/context/app-context';
 
 interface DiscoverViewProps {
@@ -51,7 +51,7 @@ export default function DiscoverView({ setView }: DiscoverViewProps) {
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-10 gap-4">
-          <GearsLoader size="lg" />
+          <MusicalNotesLoader size="lg" />
           <p className="text-lg text-muted-foreground">Finding the hottest tracks...</p>
         </div>
       ) : trendingTracks.length > 0 ? (

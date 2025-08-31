@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { GearsLoader } from '@/components/ui/gears-loader';
+import { MusicalNotesLoader } from '@/components/ui/gears-loader';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
@@ -97,7 +97,7 @@ export default function ForgotPasswordPage() {
                   )}
                 />
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && <GearsLoader className="mr-2" size="sm" />}
+                  {isLoading && <MusicalNotesLoader className="mr-2" size="sm" />}
                   Send Reset Code
                 </Button>
               </form>
@@ -147,7 +147,7 @@ export default function ForgotPasswordPage() {
                   )}
                 />
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && <GearsLoader className="mr-2" size="sm" />}
+                  {isLoading && <MusicalNotesLoader className="mr-2" size="sm" />}
                   Reset Password
                 </Button>
               </form>

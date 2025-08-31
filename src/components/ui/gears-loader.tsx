@@ -1,7 +1,8 @@
+
 import { cn } from '@/lib/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
 
-const gearsLoaderVariants = cva('flex items-center justify-center', {
+const musicalNotesLoaderVariants = cva('flex items-center justify-center', {
   variants: {
     size: {
       default: 'h-10 w-10',
@@ -14,13 +15,13 @@ const gearsLoaderVariants = cva('flex items-center justify-center', {
   },
 });
 
-export interface GearsLoaderProps
+export interface MusicalNotesLoaderProps
   extends React.SVGProps<SVGSVGElement>,
-    VariantProps<typeof gearsLoaderVariants> {}
+    VariantProps<typeof musicalNotesLoaderVariants> {}
 
-export function GearsLoader({ className, size, ...props }: GearsLoaderProps) {
+export function MusicalNotesLoader({ className, size, ...props }: MusicalNotesLoaderProps) {
   return (
-    <div className={cn(gearsLoaderVariants({ size }), className)}>
+    <div className={cn(musicalNotesLoaderVariants({ size }), className)}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 100 100"
@@ -30,99 +31,48 @@ export function GearsLoader({ className, size, ...props }: GearsLoaderProps) {
         {...props}
       >
         <style>{`
-          @keyframes gear-rotate {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+          .note {
+            animation-duration: 2s;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+            transform-origin: 50% 50%;
           }
-          @keyframes gear-rotate-reverse {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(-360deg); }
+          .note-1 { animation-name: note-path-1; }
+          .note-2 { animation-name: note-path-2; }
+          .note-3 { animation-name: note-path-3; }
+
+          @keyframes note-path-1 {
+            0%   { opacity: 0; transform: translate(25px, 75px) scale(0.5); }
+            25%  { opacity: 1; transform: translate(40px, 40px) scale(1); }
+            50%  { opacity: 1; transform: translate(60px, 30px) scale(1); }
+            75%  { opacity: 1; transform: translate(75px, 40px) scale(1); }
+            100% { opacity: 0; transform: translate(80px, 75px) scale(0.5); }
           }
-          .gear-1 {
-            animation: gear-rotate 4s linear infinite;
-            transform-origin: 32px 33px;
+          @keyframes note-path-2 {
+            0%   { opacity: 0; transform: translate(20px, 70px) scale(0.5); animation-timing-function: cubic-bezier(0.445, 0.050, 0.550, 0.950); }
+            20%  { opacity: 1; }
+            80%  { opacity: 1; }
+            100% { opacity: 0; transform: translate(80px, 30px) scale(1.2); }
           }
-          .gear-2 {
-            animation: gear-rotate-reverse 2s linear infinite;
-            transform-origin: 72px 33px;
-          }
-          .gear-3 {
-            animation: gear-rotate 4s linear infinite;
-            transform-origin: 32px 73px;
-          }
-           .gear-4 {
-            animation: gear-rotate-reverse 2s linear infinite;
-            transform-origin: 72px 73px;
+          @keyframes note-path-3 {
+            0%   { opacity: 0; transform: translate(75px, 25px) scale(0.5); animation-timing-function: cubic-bezier(0.445, 0.050, 0.550, 0.950); }
+            20%  { opacity: 1; }
+            80%  { opacity: 1; }
+            100% { opacity: 0; transform: translate(25px, 75px) scale(1.2); }
           }
         `}</style>
-        <g transform="translate(0,-7.5)">
-          <g className="gear-1">
-            <path
-              d="M32,33.5A7.5,7.5,0,0,1,24.5,41v-15A7.5,7.5,0,0,1,32,33.5Z"
-              fill="hsl(var(--primary))"
-            />
-            <path
-              d="M32,33.5A7.5,7.5,0,0,1,39.5,41v-15A7.5,7.5,0,0,1,32,33.5Z"
-              transform="rotate(60,32,33)"
-              fill="hsl(var(--primary))"
-            />
-            <path
-              d="M32,33.5A7.5,7.5,0,0,1,39.5,41v-15A7.5,7.5,0,0,1,32,33.5Z"
-              transform="rotate(120,32,33)"
-              fill="hsl(var(--primary))"
-            />
-            <circle cx="32" cy="33" r="5" fill="hsl(var(--background))" />
-          </g>
-          <g className="gear-2">
-            <path
-              d="M72,33.5A7.5,7.5,0,0,1,64.5,41v-15A7.5,7.5,0,0,1,72,33.5Z"
-              fill="hsl(var(--primary))"
-            />
-            <path
-              d="M72,33.5A7.5,7.5,0,0,1,79.5,41v-15A7.5,7.5,0,0,1,72,33.5Z"
-              transform="rotate(60,72,33)"
-              fill="hsl(var(--primary))"
-            />
-            <path
-              d="M72,33.5A7.5,7.5,0,0,1,79.5,41v-15A7.5,7.5,0,0,1,72,33.5Z"
-              transform="rotate(120,72,33)"
-              fill="hsl(var(--primary))"
-            />
-            <circle cx="72" cy="33" r="5" fill="hsl(var(--background))" />
-          </g>
-          <g className="gear-3">
-            <path
-              d="M32,73.5A7.5,7.5,0,0,1,24.5,81v-15A7.5,7.5,0,0,1,32,73.5Z"
-              fill="hsl(var(--primary))"
-            />
-            <path
-              d="M32,73.5A7.5,7.5,0,0,1,39.5,81v-15A7.5,7.5,0,0,1,32,73.5Z"
-              transform="rotate(60,32,73)"
-              fill="hsl(var(--primary))"
-            />
-            <path
-              d="M32,73.5A7.5,7.5,0,0,1,39.5,81v-15A7.5,7.5,0,0,1,32,73.5Z"
-              transform="rotate(120,32,73)"
-              fill="hsl(var(--primary))"
-            />
-            <circle cx="32" cy="73" r="5" fill="hsl(var(--background))" />
-          </g>
-           <g className="gear-4">
-            <path
-              d="M72,73.5A7.5,7.5,0,0,1,64.5,81v-15A7.5,7.5,0,0,1,72,73.5Z"
-              fill="hsl(var(--primary))"
-            />
-            <path
-              d="M72,73.5A7.5,7.5,0,0,1,79.5,81v-15A7.5,7.5,0,0,1,72,73.5Z"
-              transform="rotate(60,72,73)"
-              fill="hsl(var(--primary))"
-            />
-            <path
-              d="M72,73.5A7.5,7.5,0,0,1,79.5,81v-15A7.5,7.5,0,0,1,72,73.5Z"
-              transform="rotate(120,72,73)"
-              fill="hsl(var(--primary))"
-            />
-            <circle cx="72" cy="73" r="5" fill="hsl(var(--background))" />
+        <g stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
+          <g transform="translate(5, 5)">
+            <path d="M45,20 L45,60 C45,65.5228475 40.5228475,70 35,70 C29.4771525,70 25,65.5228475 25,60 C25,54.4771525 29.4771525,50 35,50 C36.353457,50 37.6251952,50.3117391 38.75,50.8655383" stroke="hsl(var(--primary))" strokeWidth="4"></path>
+            <g className="note note-1" fill="hsl(var(--primary))">
+              <circle cx="20" cy="80" r="5"></circle>
+            </g>
+            <g className="note note-2" fill="hsl(var(--primary))">
+               <path d="M20,70 L20,30 C20,24.4771525 24.4771525,20 30,20 C35.5228475,20 40,24.4771525 40,30 C40,35.5228475 35.5228475,40 30,40"></path>
+            </g>
+             <g className="note note-3" fill="hsl(var(--primary))">
+                <path d="M80,20 L80,60 C80,65.5228475 75.5228475,70 70,70 C64.4771525,70 60,65.5228475 60,60 C60,54.4771525 64.4771525,50 70,50"></path>
+            </g>
           </g>
         </g>
       </svg>

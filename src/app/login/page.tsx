@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { GearsLoader } from '@/components/ui/gears-loader';
+import { MusicalNotesLoader } from '@/components/ui/gears-loader';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
@@ -201,7 +201,7 @@ export default function LoginPage() {
                   </Link>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <GearsLoader className="mr-2" size="sm" />}
+                {isLoading && <MusicalNotesLoader className="mr-2" size="sm" />}
                 Login
               </Button>
             </form>
@@ -242,7 +242,7 @@ export default function LoginPage() {
                             {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
                         </Button>
                         <Button type="submit" disabled={isLoading}>
-                            {isLoading && <GearsLoader size="sm" className="mr-2" />}
+                            {isLoading && <MusicalNotesLoader size="sm" className="mr-2" />}
                             Verify & Login
                         </Button>
                     </DialogFooter>

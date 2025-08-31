@@ -20,7 +20,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { GearsLoader } from '@/components/ui/gears-loader';
+import { MusicalNotesLoader } from '@/components/ui/gears-loader';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
@@ -159,7 +159,7 @@ export default function SignupPage() {
                 )}
               />
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <GearsLoader className="mr-2" size="sm" />}
+                {isLoading && <MusicalNotesLoader className="mr-2" size="sm" />}
                 Sign Up
               </Button>
             </form>
@@ -200,7 +200,7 @@ export default function SignupPage() {
                             {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
                         </Button>
                         <Button type="submit" disabled={isLoading}>
-                            {isLoading && <GearsLoader size="sm" className="mr-2" />}
+                            {isLoading && <MusicalNotesLoader size="sm" className="mr-2" />}
                             Verify
                         </Button>
                     </DialogFooter>

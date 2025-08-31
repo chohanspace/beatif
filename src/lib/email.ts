@@ -184,3 +184,15 @@ export async function sendPasswordResetSuccessEmail(to: string) {
   const html = getEmailHtml(title, heading, body, footer);
   await sendEmail(to, title, html);
 }
+
+export async function sendSuccessfulLoginEmail(to: string) {
+  const title = "Successful Sign In to Beatif";
+  const heading = "New Login to Your Account";
+  const body = `
+    <p>We've detected a new sign-in to your Beatif account.</p>
+    <p class="info">If this wasn't you, please reset your password immediately and contact support.</p>
+  `;
+  const footer = "This email is a security notification for your Beatif account.";
+  const html = getEmailHtml(title, heading, body, footer);
+  await sendEmail(to, title, html);
+}

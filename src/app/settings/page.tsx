@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { saveUser } from '@/lib/auth';
 import { countries } from '@/lib/countries';
 import { getGenreRecommendations } from '@/lib/actions';
-import { GearsLoader } from '@/components/ui/gears-loader';
+import { MusicalNotesLoader } from '@/components/ui/gears-loader';
 import { Sparkles } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { User } from '@/lib/types';
@@ -82,7 +82,7 @@ export default function SettingsPage() {
   const filteredCountries = countries.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()));
 
   if (!loggedInUser) {
-    return <div className="flex justify-center items-center h-full"><GearsLoader size="lg" /></div>
+    return <div className="flex justify-center items-center h-full"><MusicalNotesLoader size="lg" /></div>
   }
 
   return (
@@ -120,7 +120,7 @@ export default function SettingsPage() {
                     </SelectContent>
                 </Select>
                  <Button onClick={handleCountrySave} disabled={isSaving || selectedCountry === loggedInUser.country}>
-                    {isSaving ? <GearsLoader size="sm" className="mr-2" /> : null}
+                    {isSaving ? <MusicalNotesLoader size="sm" className="mr-2" /> : null}
                     Save Country
                 </Button>
             </div>
@@ -136,7 +136,7 @@ export default function SettingsPage() {
                 />
                 <p className="text-xs text-muted-foreground">Separate artist names with a comma.</p>
                  <Button onClick={handleArtistsSave} disabled={isSaving}>
-                    {isSaving ? <GearsLoader size="sm" className="mr-2" /> : null}
+                    {isSaving ? <MusicalNotesLoader size="sm" className="mr-2" /> : null}
                     Save Artists
                 </Button>
             </div>
@@ -162,7 +162,7 @@ export default function SettingsPage() {
             <Button type="submit" disabled={isGenerating || (!listeningHistory.trim() && !favoriteSingers.trim())}>
               {isGenerating ? (
                 <>
-                  <GearsLoader className="mr-2" size="sm" />
+                  <MusicalNotesLoader className="mr-2" size="sm" />
                   Analyzing...
                 </>
               ) : (

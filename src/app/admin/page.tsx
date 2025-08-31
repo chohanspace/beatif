@@ -18,7 +18,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { GearsLoader } from '@/components/ui/gears-loader';
+import { MusicalNotesLoader } from '@/components/ui/gears-loader';
 import { Label } from '@/components/ui/label';
 
 export default function AdminPage() {
@@ -165,13 +165,13 @@ export default function AdminPage() {
           Create User
         </Button>
         <Button onClick={fetchUsers} variant="outline" className="ml-2">
-          {isLoading ? <GearsLoader size="sm" /> : 'Refresh'}
+          {isLoading ? <MusicalNotesLoader size="sm" /> : 'Refresh'}
         </Button>
       </div>
 
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <GearsLoader size="lg" />
+          <MusicalNotesLoader size="lg" />
         </div>
       ) : (
         <Table>
@@ -255,7 +255,7 @@ export default function AdminPage() {
                     <Button variant="ghost">Cancel</Button>
                 </DialogClose>
                 <Button onClick={handleCreateUser} disabled={isUpdating}>
-                    {isUpdating && <GearsLoader size="sm" className="mr-2" />}
+                    {isUpdating && <MusicalNotesLoader size="sm" className="mr-2" />}
                     Create User
                 </Button>
             </DialogFooter>

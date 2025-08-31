@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { countries } from '@/lib/countries';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { GearsLoader } from '@/components/ui/gears-loader';
+import { MusicalNotesLoader } from '@/components/ui/gears-loader';
 import { useSession } from 'next-auth/react';
 
 function BeatifApp() {
@@ -73,7 +73,7 @@ function BeatifApp() {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-4">
-                <GearsLoader size="lg" />
+                <MusicalNotesLoader size="lg" />
                 <p className="text-muted-foreground">Authenticating...</p>
             </div>
         </div>
@@ -128,7 +128,7 @@ function BeatifApp() {
             </div>
             <DialogFooter>
                 <Button onClick={handleSaveCountry} disabled={!selectedCountry || isSavingCountry}>
-                    {isSavingCountry ? <GearsLoader size="sm" className="mr-2" /> : 'Save and Continue'}
+                    {isSavingCountry ? <MusicalNotesLoader size="sm" className="mr-2" /> : 'Save and Continue'}
                 </Button>
             </DialogFooter>
         </DialogContent>

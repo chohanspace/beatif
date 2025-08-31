@@ -2,7 +2,7 @@
 "use server";
 
 import clientPromise from './mongodb';
-import { sendOtpEmail, sendPasswordResetEmail, sendWelcomeEmail, sendPasswordResetSuccessEmail } from './email';
+import { sendOtpEmail, sendPasswordResetEmail, sendWelcomeEmail, sendPasswordResetSuccessEmail, sendSuccessfulLoginEmail } from './email';
 import type { User } from './types';
 import { randomInt } from 'crypto';
 import type { Collection, Document, WithId, ObjectId } from 'mongodb';
@@ -129,6 +129,8 @@ export async function login(email: string, password: string): Promise<{ success:
     const userPayload = { ...userToReturn, id: _id.toString() };
 
     const token = generateToken(userPayload);
+    
+    await sendSuccessfulLoginEmail(email);
 
 
     return { success: true, message: 'Login successful.', user: userPayload, token };

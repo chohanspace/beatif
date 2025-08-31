@@ -5,7 +5,7 @@ import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
 import { searchYoutube } from '@/lib/actions';
 import type { Track, View } from '@/lib/types';
 import TrackCard from './track-card';
-import { GearsLoader } from './ui/gears-loader';
+import { MusicalNotesLoader } from './ui/gears-loader';
 
 interface SearchViewProps {
   query: string;
@@ -49,7 +49,7 @@ export default function SearchView({ query, setView, initialResults }: SearchVie
       </div>
       {isLoading ? (
         <div className="flex items-center justify-center py-10">
-          <GearsLoader size="lg" />
+          <MusicalNotesLoader size="lg" />
         </div>
       ) : results.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
