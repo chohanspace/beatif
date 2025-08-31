@@ -151,7 +151,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   
   const findTrackInPlaylists = useCallback((trackId: string) => {
     for (const playlist of state.playlists) {
-        const trackIndex = playlist.tracks.findIndex(t => t.id === trackId);
+        const trackIndex = playlist.tracks.findIndex(t => t.youtubeId === trackId);
         if (trackIndex !== -1) {
             return { playlist, trackIndex };
         }
@@ -161,7 +161,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   
   const playNext = useCallback(() => {
     if (!state.currentTrack) return;
-    const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.id);
+    const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.youtubeId);
     if (playlist && trackIndex < playlist.tracks.length - 1) {
         dispatch({ type: 'SET_CURRENT_TRACK', payload: playlist.tracks[trackIndex + 1] });
     }
@@ -173,7 +173,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ytPlayer.seekTo(0);
         return;
     }
-    const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.id);
+    const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.youtubeId);
     if (playlist && trackIndex > 0) {
         dispatch({ type: 'SET_CURRENT_TRACK', payload: playlist.tracks[trackIndex - 1] });
     }
@@ -195,13 +195,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     playPrev,
     canPlayNext: () => {
         if (!state.currentTrack) return false;
-        const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.id);
+        const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.youtubeId);
         return !!playlist && trackIndex < playlist.tracks.length - 1;
     },
     canPlayPrev: () => {
         if (!state.currentTrack) return false;
         if (state.playerState.progress > 3) return true; // Can rewind
-        const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.id);
+        const { playlist, trackIndex } = findTrackInPlaylists(state.currentTrack.youtubeId);
         return !!playlist && trackIndex > 0;
     },
   };

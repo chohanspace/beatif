@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import type { View } from '@/lib/types';
 import { useApp } from '@/context/app-context';
 import { Button } from './ui/button';
@@ -31,6 +31,9 @@ export default function PlayerView({ setView }: PlayerViewProps) {
     controls
   } = useApp();
   const { toast } = useToast();
+  
+  const [sliderValue, setSliderValue] = useState([0]);
+  const [isSeeking, setIsSeeking] = useState(false);
 
   useEffect(() => {
     // If there's no track, go back to discover view
@@ -39,6 +42,12 @@ export default function PlayerView({ setView }: PlayerViewProps) {
     }
   }, [currentTrack, setView]);
   
+  useEffect(() => {
+      if (!isSeeking) {
+        setSliderValue([playerState.progress]);
+      }
+  }, [playerState.progress, isSeeking]);
+
   if (!currentTrack) {
     return null; // Or a loading/placeholder state
   }
@@ -60,10 +69,16 @@ export default function PlayerView({ setView }: PlayerViewProps) {
     dispatch({ type: 'CREATE_PLAYLIST', payload: { name, tracks: [currentTrack] } });
   }
   
-  const handleSliderChange = (value: number[]) => {
+  const handleSliderValueChange = (value: number[]) => {
+      setIsSeeking(true);
+      setSliderValue(value);
+  }
+  
+  const handleSliderCommit = (value: number[]) => {
       if(controls.seek) {
         controls.seek(value[0]);
       }
+      setIsSeeking(false);
   }
 
 
@@ -107,13 +122,14 @@ export default function PlayerView({ setView }: PlayerViewProps) {
             
             <div className="mt-4">
                  <Slider 
-                    value={[playerState.progress]}
+                    value={sliderValue}
                     max={playerState.duration}
-                    onValueChange={handleSliderChange}
+                    onValueChange={handleSliderValueChange}
+                    onValueCommit={handleSliderCommit}
                     disabled={!playerState.duration}
                  />
                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                    <span>{formatTime(playerState.progress)}</span>
+                    <span>{formatTime(sliderValue[0])}</span>
                     <span>{formatTime(playerState.duration)}</span>
                  </div>
             </div>

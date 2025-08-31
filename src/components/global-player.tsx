@@ -1,16 +1,15 @@
 
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useApp } from '@/context/app-context';
 
 export function GlobalPlayer() {
-  const { currentTrack, ytPlayer, setYtPlayer, dispatch, playerRef, controls, playerState } = useApp();
-  const isReady = useRef(false);
+  const { currentTrack, ytPlayer, setYtPlayer, dispatch, controls, playerState, playerRef } = useApp();
 
   useEffect(() => {
     const onYouTubeIframeAPIReady = () => {
-      if (typeof window.YT === 'undefined' || typeof window.YT.Player === 'undefined' || isReady.current) {
+      if (typeof window.YT === 'undefined' || typeof window.YT.Player === 'undefined' || ytPlayer) {
         return;
       }
 
@@ -28,13 +27,12 @@ export function GlobalPlayer() {
         },
         events: {
           onReady: (event: any) => {
-            isReady.current = true;
             setYtPlayer(event.target);
           },
           onStateChange: (event: any) => {
             const YT = (window as any).YT;
             if (event.data === YT.PlayerState.PLAYING) {
-              const duration = event.target.getDuration ? event.target.getDuration() : 0;
+              const duration = ytPlayer?.getDuration ? ytPlayer.getDuration() : 0;
               dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true, duration }});
             } else if (event.data === YT.PlayerState.PAUSED) {
               dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false }});
@@ -51,7 +49,6 @@ export function GlobalPlayer() {
       (window as any).onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
     }
 
-    // If the API is already loaded, and we don't have a player, create it.
     if ((window as any).YT?.Player && !ytPlayer) {
        onYouTubeIframeAPIReady();
     }
@@ -62,10 +59,10 @@ export function GlobalPlayer() {
         if(ytPlayer.getVideoData()?.video_id !== currentTrack.youtubeId) {
             ytPlayer.loadVideoById(currentTrack.youtubeId);
         } else {
-            ytPlayer.playVideo();
+            ytPlayer.playVideo?.();
         }
     } else if (ytPlayer && !currentTrack) {
-        ytPlayer.stopVideo();
+        ytPlayer.stopVideo?.();
     }
   }, [currentTrack, ytPlayer]);
 
@@ -86,12 +83,11 @@ export function GlobalPlayer() {
         clearInterval(progressInterval);
       }
     };
-  }, [playerState.isPlaying, ytPlayer, dispatch]); // Removed playerState.progress to avoid re-running interval constantly
+  }, [playerState.isPlaying, ytPlayer, dispatch, playerState.progress]);
 
 
   return (
     <div
-      ref={playerRef}
       id="global-player-container"
       style={{
         position: 'fixed',
@@ -101,7 +97,7 @@ export function GlobalPlayer() {
         height: '1px',
       }}
     >
-      <div id="yt-player-iframe" />
+      <div id="yt-player-iframe" ref={playerRef as any} />
     </div>
   );
 }
