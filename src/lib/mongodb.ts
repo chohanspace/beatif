@@ -1,3 +1,4 @@
+
 // src/lib/mongodb.ts
 import { MongoClient } from 'mongodb';
 
@@ -7,8 +8,8 @@ const options = {};
 let client;
 let clientPromise: Promise<MongoClient>;
 
-if (!uri) {
-  throw new Error('Please add your Mongo URI to .env');
+if (!uri || uri.includes('YOUR_MONGODB_URI_HERE') || uri.includes('YOUR_CLUSTER')) {
+  throw new Error('Please add your Mongo URI to .env. It seems to be missing or using a placeholder value.');
 }
 
 if (process.env.NODE_ENV === 'development') {
