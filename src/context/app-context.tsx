@@ -212,6 +212,52 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return !!playlist && trackIndex > 0;
     },
   };
+  
+  // YouTube Player Initialization
+  useEffect(() => {
+    const onYouTubeIframeAPIReady = () => {
+      if (!window.YT) return;
+      const player = new (window as any).YT.Player('yt-player-iframe', {
+        height: '100%',
+        width: '100%',
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          rel: 0,
+          showinfo: 0,
+          iv_load_policy: 3,
+          modestbranding: 1,
+          origin: window.location.origin,
+        },
+        events: {
+          onReady: (event: any) => {
+            setYtPlayer(event.target);
+          },
+          onStateChange: (event: any) => {
+            const YT = (window as any).YT;
+            if (event.data === YT.PlayerState.PLAYING) {
+              const duration = event.target.getDuration() || 0;
+              dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true, duration }});
+            } else if (event.data === YT.PlayerState.PAUSED) {
+              dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false }});
+            } else if (event.data === YT.PlayerState.ENDED) {
+              dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false }});
+              controls.playNext();
+            }
+          },
+        },
+      });
+    };
+
+    if (!(window as any).onYouTubeIframeAPIReady) {
+      (window as any).onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+    }
+    
+    if ((window as any).YT?.Player && !ytPlayer) {
+       onYouTubeIframeAPIReady();
+    }
+  }, [controls, ytPlayer]);
+
 
   useEffect(() => {
     let progressInterval: NodeJS.Timeout | null = null;
@@ -325,10 +371,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [state.theme]);
 
-  const setTheme = (theme: Theme) => {
-    dispatch({ type: 'SET_THEME', payload: theme });
-  };
-
   const setAndStoreUser = (user: User | null) => {
     setLoggedInUser(user);
     if(typeof window !== "undefined") {
@@ -344,6 +386,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
   }
+
+  const setTheme = (theme: Theme) => {
+    dispatch({ type: 'SET_THEME', payload: theme });
+  };
 
   const contextValue: AppContextType = {
     ...state,

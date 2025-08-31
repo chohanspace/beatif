@@ -73,8 +73,8 @@ export default function PlayerView({ setView }: PlayerViewProps) {
   
   const handleSliderValueChange = (value: number[]) => {
       // When the user drags the slider, update the local state to move the thumb
-      setIsSeeking(true);
       setSliderValue(value);
+      setIsSeeking(true);
   }
   
   const handleSliderCommit = (value: number[]) => {
@@ -161,3 +161,5 @@ export default function PlayerView({ setView }: PlayerViewProps) {
     </div>
   );
 }
+
+    
