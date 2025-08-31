@@ -39,7 +39,6 @@ interface AppContextType extends AppState {
   setLoggedInUser: (user: User | null) => void;
   setTheme: (theme: Theme) => void;
   ytPlayer: any | null;
-  setYtPlayer: (player: any) => void;
   playerRef: React.RefObject<HTMLDivElement> | null;
   controls: PlayerControls;
 }
@@ -156,9 +155,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             return { playlist, trackIndex };
         }
     }
-    // Also check if the current track itself is the one (e.g. from search)
+    // Also check if the current track itself is the one (e.g. from search or discover)
     if (state.currentTrack?.youtubeId === trackId) {
-        return { playlist: { id: 'search', name: 'Search Results', tracks: [state.currentTrack] }, trackIndex: 0 };
+        const tempPlaylist = { id: 'search/discover', name: 'Now Playing', tracks: [state.currentTrack] };
+        return { playlist: tempPlaylist, trackIndex: 0 };
     }
     return { playlist: null, trackIndex: -1 };
   }, [state.playlists, state.currentTrack]);
@@ -185,12 +185,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   
   const togglePlay = useCallback(() => {
     if (!ytPlayer) return;
-    if (state.playerState.isPlaying) {
+    const currentState = ytPlayer.getPlayerState();
+    if (currentState === 1 /* PLAYING */) {
       ytPlayer.pauseVideo();
     } else {
       ytPlayer.playVideo();
     }
-  }, [ytPlayer, state.playerState.isPlaying]);
+  }, [ytPlayer]);
 
 
   const controls: PlayerControls = {
@@ -215,57 +216,78 @@ export function AppProvider({ children }: { children: ReactNode }) {
   
   // YouTube Player Initialization
   useEffect(() => {
-    const onYouTubeIframeAPIReady = () => {
-      if (!window.YT) return;
-      const player = new (window as any).YT.Player('yt-player-iframe', {
-        height: '100%',
-        width: '100%',
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          rel: 0,
-          showinfo: 0,
-          iv_load_policy: 3,
-          modestbranding: 1,
-          origin: window.location.origin,
-        },
-        events: {
-          onReady: (event: any) => {
-            setYtPlayer(event.target);
-          },
-          onStateChange: (event: any) => {
-            const YT = (window as any).YT;
-            if (event.data === YT.PlayerState.PLAYING) {
-              const duration = event.target.getDuration() || 0;
-              dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true, duration }});
-            } else if (event.data === YT.PlayerState.PAUSED) {
-              dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false }});
-            } else if (event.data === YT.PlayerState.ENDED) {
-              dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false }});
-              controls.playNext();
-            }
-          },
-        },
-      });
+    const onPlayerReady = (event: any) => {
+      setYtPlayer(event.target);
+    };
+
+    const onPlayerStateChange = (event: any) => {
+      const YT = (window as any).YT;
+      if (event.data === YT.PlayerState.PLAYING) {
+        const duration = event.target.getDuration() || 0;
+        dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true, duration }});
+      } else if (event.data === YT.PlayerState.PAUSED) {
+        dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false }});
+      } else if (event.data === YT.PlayerState.ENDED) {
+        dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false, progress: 0 }});
+        playNext();
+      }
+    };
+    
+    const setupPlayer = () => {
+        if (window.YT && playerRef.current) {
+             new (window as any).YT.Player(playerRef.current, {
+                height: '100%',
+                width: '100%',
+                playerVars: {
+                    autoplay: 0, // Should be 0, we control play via state
+                    controls: 0,
+                    rel: 0,
+                    showinfo: 0,
+                    iv_load_policy: 3,
+                    modestbranding: 1,
+                    origin: typeof window !== 'undefined' ? window.location.origin : '',
+                },
+                events: {
+                    onReady: onPlayerReady,
+                    onStateChange: onPlayerStateChange,
+                },
+            });
+        }
     };
 
     if (!(window as any).onYouTubeIframeAPIReady) {
-      (window as any).onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+      (window as any).onYouTubeIframeAPIReady = setupPlayer;
+    } else {
+        setupPlayer();
     }
-    
-    if ((window as any).YT?.Player && !ytPlayer) {
-       onYouTubeIframeAPIReady();
+  }, [playNext]);
+
+  // Effect to control the player when the current track changes
+  useEffect(() => {
+    if (ytPlayer && state.currentTrack) {
+        const currentVideoId = ytPlayer.getVideoData ? ytPlayer.getVideoData().video_id : null;
+        if (currentVideoId !== state.currentTrack.youtubeId) {
+            ytPlayer.loadVideoById(state.currentTrack.youtubeId);
+        }
     }
-  }, [controls, ytPlayer]);
+  }, [state.currentTrack, ytPlayer]);
 
+  // Effect to play the video when it's loaded and isPlaying is true
+  useEffect(() => {
+      if (ytPlayer && state.playerState.isPlaying) {
+          ytPlayer.playVideo();
+      }
+  }, [ytPlayer, state.playerState.isPlaying]);
 
+  // Effect to sync progress
   useEffect(() => {
     let progressInterval: NodeJS.Timeout | null = null;
     if (state.playerState.isPlaying && ytPlayer) {
       progressInterval = setInterval(() => {
         const progress = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
+        const duration = ytPlayer.getDuration ? ytPlayer.getDuration() : 0;
         if (progress !== state.playerState.progress) {
-          dispatch({ type: 'SET_PLAYER_STATE', payload: { progress } });
+          dispatch({ type: 'SET_PLAYER_STATE', payload: { progress, duration } });
         }
       }, 500);
     }
@@ -279,7 +301,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Handle user state from both next-auth session and our custom JWT
   useEffect(() => {
-    // This effect runs on initial mount to load user from localStorage
     try {
       const storedUser = localStorage.getItem('loggedInUser');
       if (storedUser) {
@@ -352,9 +373,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             theme: state.theme
         };
         saveUser(updatedUser).then(() => {
-            // Also update the state in the provider and local storage
             setLoggedInUser(updatedUser);
-            if(typeof window !== "undefined" && !session?.user) { // Only use localStorage for non-google auth
+            if(typeof window !== "undefined" && !session?.user) { 
               localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
             }
         }).catch(err => console.error("Failed to save user state:", err));
@@ -376,7 +396,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if(typeof window !== "undefined") {
       if (user) {
         localStorage.setItem('loggedInUser', JSON.stringify(user));
-        // For email/pass logins, also store the JWT if it's generated
         if ('token' in user && (user as any).token) {
             localStorage.setItem('jwt', (user as any).token);
         }
@@ -398,7 +417,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLoggedInUser: setAndStoreUser,
     setTheme,
     ytPlayer,
-    setYtPlayer,
     playerRef,
     controls,
   };

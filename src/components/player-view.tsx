@@ -32,28 +32,24 @@ export default function PlayerView({ setView }: PlayerViewProps) {
   } = useApp();
   const { toast } = useToast();
   
-  // Local state for the slider to provide a smooth UX while dragging
   const [sliderValue, setSliderValue] = useState([0]);
   const [isSeeking, setIsSeeking] = useState(false);
 
   useEffect(() => {
-    // If there's no track, go back to discover view
     if (!currentTrack) {
         setView({ type: 'discover' });
     }
   }, [currentTrack, setView]);
   
   useEffect(() => {
-      // Update the slider's position based on real progress, but only if the user is not actively seeking.
       if (!isSeeking) {
         setSliderValue([playerState.progress]);
       }
   }, [playerState.progress, isSeeking]);
 
   if (!currentTrack) {
-    return null; // Or a loading/placeholder state
+    return null;
   }
-
 
   const handleAddToPlaylist = (playlistId: string) => {
     dispatch({ type: 'ADD_TRACK_TO_PLAYLIST', payload: { playlistId, track: currentTrack } });
@@ -72,16 +68,12 @@ export default function PlayerView({ setView }: PlayerViewProps) {
   }
   
   const handleSliderValueChange = (value: number[]) => {
-      // When the user drags the slider, update the local state to move the thumb
       setSliderValue(value);
       setIsSeeking(true);
   }
   
   const handleSliderCommit = (value: number[]) => {
-      // When the user releases the slider, send the seek command and stop local tracking
-      if(controls.seek) {
-        controls.seek(value[0]);
-      }
+      controls.seek(value[0]);
       setIsSeeking(false);
   }
 
@@ -130,7 +122,7 @@ export default function PlayerView({ setView }: PlayerViewProps) {
                     max={playerState.duration}
                     onValueChange={handleSliderValueChange}
                     onValueCommit={handleSliderCommit}
-                    disabled={!playerState.duration}
+                    disabled={!playerState.duration || playerState.duration === 0}
                  />
                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
                     <span>{formatTime(sliderValue[0])}</span>
@@ -148,7 +140,7 @@ export default function PlayerView({ setView }: PlayerViewProps) {
                 <Rewind className="h-6 w-6 md:h-8 md:w-8" />
             </Button>
              <Button variant="default" size="icon" className="h-16 w-16 md:h-20 md:w-20 rounded-full" onClick={controls.togglePlay} disabled={!playerState.duration}>
-                {playerState.isPlaying ? <Pause className="h-8 w-8 md:h-10 md:w-10 fill-current" /> : <Play className="h-8 w-8 md:h-10 md:w-10 fill-current" />}
+                {playerState.isPlaying ? <Pause className="h-8 w-8 md:h-10 md:w-10 fill-current" /> : <Play className="h-8 w-8 md:h-10 md:w-10 fill-current ml-1" />}
             </Button>
              <Button variant="ghost" size="icon" className="h-12 w-12 md:h-16 md:w-16" onClick={() => controls.seek(playerState.progress + 10)} disabled={!playerState.duration}>
                 <FastForward className="h-6 w-6 md:h-8 md:w-8" />
@@ -161,5 +153,3 @@ export default function PlayerView({ setView }: PlayerViewProps) {
     </div>
   );
 }
-
-    
