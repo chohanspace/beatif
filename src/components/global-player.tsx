@@ -5,16 +5,17 @@ import { useEffect, useRef } from 'react';
 import { useApp } from '@/context/app-context';
 
 export function GlobalPlayer() {
-  const { currentTrack, ytPlayer, setYtPlayer, dispatch, playerRef, controls } = useApp();
+  const { currentTrack, ytPlayer, setYtPlayer, dispatch, playerRef, controls, playerState } = useApp();
   const isReady = useRef(false);
 
   useEffect(() => {
     const onYouTubeIframeAPIReady = () => {
-      // Ensure YT and YT.Player are available before creating a new player
       if (typeof window.YT === 'undefined' || typeof window.YT.Player === 'undefined') {
         console.error('YouTube Player API not ready.');
         return;
       }
+
+      if (isReady.current) return;
 
       const player = new (window as any).YT.Player('yt-player-iframe', {
         height: '100%',
@@ -40,6 +41,7 @@ export function GlobalPlayer() {
             } else if (event.data === YT.PlayerState.PAUSED) {
               dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false }});
             } else if (event.data === YT.PlayerState.ENDED) {
+              dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false }});
               controls.playNext();
             }
           },
@@ -51,36 +53,40 @@ export function GlobalPlayer() {
       (window as any).onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
     }
 
-    if ((window as any).YT && (window as any).YT.Player && !ytPlayer) {
+    if ((window as any).YT?.Player && !ytPlayer) {
        onYouTubeIframeAPIReady();
     }
   }, [setYtPlayer, dispatch, controls, ytPlayer]);
 
   useEffect(() => {
-    let progressInterval: NodeJS.Timeout;
-    
     if (ytPlayer && currentTrack) {
         if(ytPlayer.getVideoData()?.video_id !== currentTrack.youtubeId) {
             ytPlayer.loadVideoById(currentTrack.youtubeId);
+        } else {
+            ytPlayer.playVideo();
         }
-        dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: true } });
-
-        progressInterval = setInterval(() => {
-            const progress = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
-            const duration = ytPlayer.getDuration ? ytPlayer.getDuration() : 0;
-            dispatch({ type: 'SET_PLAYER_STATE', payload: { progress, duration } });
-        }, 500);
-
     } else if (ytPlayer && !currentTrack) {
         ytPlayer.stopVideo();
-        dispatch({ type: 'SET_PLAYER_STATE', payload: { isPlaying: false } });
     }
+  }, [currentTrack, ytPlayer]);
+
+  useEffect(() => {
+    let progressInterval: NodeJS.Timeout | null = null;
+    if (playerState.isPlaying && ytPlayer) {
+        progressInterval = setInterval(() => {
+            const progress = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
+            if (progress !== playerState.progress) {
+                dispatch({ type: 'SET_PLAYER_STATE', payload: { progress } });
+            }
+        }, 500);
+    } 
     
     return () => {
-        if (progressInterval) clearInterval(progressInterval);
+        if (progressInterval) {
+            clearInterval(progressInterval);
+        }
     };
-
-  }, [currentTrack, ytPlayer, dispatch]);
+  }, [playerState.isPlaying, ytPlayer, dispatch, playerState.progress]);
 
 
   return (
